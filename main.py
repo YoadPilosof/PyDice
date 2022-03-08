@@ -1,4 +1,5 @@
 import dice
+import time
 import dice_utilities
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
@@ -34,17 +35,13 @@ def general_examples():
             return 2 + (args.count(6) > 1)
         return 0 + (max(*args) >= 4)
 
-    d4 = dice.d(4)
-    d6 = dice.d(6)
-    d8 = dice.d(8)
-    d10 = dice.d(10)
-    d12 = dice.d(12)
-    d20 = dice.d(20)
+    d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
 
+    time_start = time.time()
     # d = d8 ; name = '1d8'
     # d = d4 + d6 + d8 ; name = '1d4 + 1d6 + 1d8'
     # d = d6 ** 8 ; name = '8d6'
-    d = d20.adv() ; name = '1d20 with advantage'
+    # d = d20.adv() ; name = '1d20 with advantage'
     # d = d20.dis(3) ; name = '1d20 with triple disadvantage'
     # d = dice.drop_pos([d6]*4, -1) ; name = '4d6 drop lowest'
     # d = d6.exp() ; name = 'exploding 1d6'
@@ -62,20 +59,34 @@ def general_examples():
     # d = dice.func(diminishing, d10, 10) ; name = 'Diminishing exploding die'
     # d = dice.func(blades, *([d6] * 4)) ; name = 'Blades die'
     # d = dice.list2dice([0, 1, 2, 2]).switch(d4, d6, d8) ; name = 'Switch case'
+    # d = dice.get_pos([dice.drop_pos([d6]*4, -1)]*6, 1)
+    # def high_low(x, y):
+    #     if x > y:
+    #         return x, y
+    #     return y, x
+    # d_list = dice.func(high_low, d6, d6) ; name = 'A tuple returning function'
+    # d = d_list[0]
+    # d = d6.get_pos(11, 20) ; name = "Optimized advantage"
+    # d = dice.d(6, 100) ; name = "Optimized Multidice"
+    # d = d6**100
+
+    time_end = time.time()
 
     # d.print_normal(name)
     # d.print_at_least(name)
     # d.print_at_most(name)
+    # print(d.std())
+    # print("Elapsed Time = {} us".format(1000*1000*(time_end - time_start)))
 
     dice1 = d12
     dice2 = d6 ** 2
     dice3 = d4 ** 3
-    # dice.plot([dice1, dice2, dice3], ['d12', '2d6', '3d4'], title='Splitting Dice')
+    # dice.plot([dice1, dice2, dice3], names=['d12', '2d6', '3d4'], title='Splitting Dice')
 
     d_1 = lambda AC: (d20.adv() + 5 >= AC).cond(d8 + 3, 0)
     d_2 = lambda AC: (d20 + 5 >= AC).cond(d8 + 3, 0)
     d_3 = lambda AC: (d20.dis() + 5 >= AC).cond(d8 + 3, 0)
-    dice.plot([d_1, d_2, d_3], names=['Advantage', 'Normal', 'Disadvantage'], dynamic_vars=[('AC', 10, 15, 20, 1)])
+    # dice.plot([d_1, d_2, d_3], names=['Advantage', 'Normal', 'Disadvantage'], dynamic_vars=[('AC', 10, 15, 20, 1)])
     # dice.plot([d_1, d_2, d_3], dynamic_vars=[('AC', 10, 15, 20, 1)])
 
     d_1 = lambda Hit, AC: (d20.adv() + Hit >= AC).cond(d8 + 3, 0)
@@ -92,8 +103,23 @@ def general_examples():
     x_list = [1, 2, 3, 4, 5]
     # dice.print_summary(high_d4, x_list)
     param_list = ['d4', 'd6', 'd8']
-    # dice.plott(high_d4, x_list, 'd4', draw_error_bars=True, title='Keeping the highest cube')
-    # dice.plott(dice_list, x_list, param_list, draw_error_bars=True,title='Keeping the highest cube')
+    # dice.plott(high_d4, x_list, 'd4', draw_error_bars=True, xlabel='Number of Dice', title='Keeping the highest cube')
+    # dice.plott(dice_list, x_list, param_list, draw_error_bars=True, xlabel='Number of Dice', title='Keeping the highest cube')
+
+    Xd4 = lambda x: d4 ** x
+    # dice.plot(Xd4, names='Xd4', dynamic_vars=[('X', 1, 1, 20, 1)])
+
+    one_stat = dice.drop_pos([d6]*4, -1)
+    # one_stat.adv(6).print_normal()
+    stats = []
+    # for i in range(6):
+    #     stats.append(one_stat.get_pos(i, 6))
+    # stats[1].print_normal()
+
+    # dice.highest(d4,d6,d8,d10,d12).print_normal()
+
+    d8.get_pos(list(range(10)), 20).print_normal()
+
 
 def Theyandor():
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
@@ -142,5 +168,3 @@ if __name__ == '__main__':
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
     general_examples()
     # Theyandor()
-
-
