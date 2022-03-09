@@ -76,7 +76,7 @@ def general_examples():
     # d.print_at_least(name)
     # d.print_at_most(name)
     # print(d.std())
-    # print("Elapsed Time = {} us".format(1000*1000*(time_end - time_start)))
+    print("Elapsed Time = {} us".format(1000*1000*(time_end - time_start)))
 
     dice1 = d12
     dice2 = d6 ** 2
@@ -118,7 +118,7 @@ def general_examples():
 
     # dice.highest(d4,d6,d8,d10,d12).print_normal()
 
-    d8.get_pos(list(range(10)), 20).print_normal()
+    # d8.get_pos(list(range(10)), 20).print_normal()
 
 
 def Theyandor():

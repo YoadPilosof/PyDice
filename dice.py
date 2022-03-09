@@ -64,7 +64,7 @@ class dice:
         :return: Returns the mean of the dice
         """
         res = 0
-        for roll, chance in sorted(self.pdf.items()):
+        for roll, chance in self.pdf.items():
             res += roll * chance
         return res
 
@@ -72,9 +72,12 @@ class dice:
         """
         :return: Returns the standard deviation of the dice
         """
-        m = self.mean()
+
+        # Calculate the variance, and later take the square root
         var = 0
-        for roll, chance in sorted(self.pdf.items()):
+        # First find the mean, as it is used in the definition of the variance
+        m = self.mean()
+        for roll, chance in self.pdf.items():
             var += ((roll - m) ** 2) * chance
         return math.sqrt(var)
 
@@ -92,16 +95,24 @@ class dice:
 
     def roll(self, n=0):
         """
-        Simulates a roll of the dice
+        Simulates a roll of the die
         :param n: How many dice rolls to simulate
         :return: The simulates roll(s). If a value was given to n, returns a list, otherwise returns a value
         """
+        # The possible outcomes of the die
         rolls = list(self.pdf.keys())
+        # The probability of each outcome
         chances = list(self.pdf.values())
+
+        # Since n=0 describes rolling once and not wrapping it in a list
+        # We create a new variable that describes the actual number of rolls to simulate
         nFix = n if n >= 1 else 1
+        # Randomly choose an index (describing a roll), with probabilities according to <chances>
         index = random.choices(range(len(chances)), chances, k=nFix)
+        # If the n argument wasn't given, return a value instead of a list
         if n == 0:
             return rolls[index[0]]
+        # For other values of n, convert the list of indices to a list of rolls
         return [rolls[index[i]] for i in range(len(index))]
 
     def norm(self):
@@ -119,25 +130,23 @@ class dice:
         :param other: The second die to add. Can be a number
         :return: A new die, with statistics according to the sum of the two dice
         """
-        if not isinstance(other, dice):
-            new_other = dice()
-            new_other.pdf[other] = 1
-            other = new_other
 
-        self_rolls = list(self.pdf.keys())
-        self_chances = list(self.pdf.values())
-        other_rolls = list(other.pdf.keys())
-        other_chances = list(other.pdf.values())
+        # Force the <other> die to be a die object
+        other = dice_utilities.force_cube(other)
 
         new_dice = dice()
 
-        for i in range(len(self_rolls)):
-            for j in range(len(other_rolls)):
-                new_roll = self_rolls[i] + other_rolls[j]
+        for self_roll, self_chance in self.pdf.items():
+            for other_roll, other_chance in other.pdf.items():
+                # The outcome of these two rolls, is the sum of the rolls
+                new_roll = self_roll + other_roll
+                # If this roll is not a possible roll of the new dice, add it with probability of 0
                 if not (new_roll in new_dice.pdf):
                     new_dice.pdf[new_roll] = 0
-                new_dice.pdf[new_roll] += self_chances[i] * other_chances[j]
+                # Increase the chance of getting this outcome by the product of the probabilities of each die
+                new_dice.pdf[new_roll] += self_chance * other_chance
 
+        # Return the new die
         return new_dice
 
     def __sub__(self, other):
@@ -146,25 +155,23 @@ class dice:
         :param other: The second die to subtract. Can be a number
         :return: A new die, with statistics according to the difference of the two dice
         """
-        if not isinstance(other, dice):
-            new_other = dice()
-            new_other.pdf[other] = 1
-            other = new_other
 
-        self_rolls = list(self.pdf.keys())
-        self_chances = list(self.pdf.values())
-        other_rolls = list(other.pdf.keys())
-        other_chances = list(other.pdf.values())
+        # Force the <other> die to be a die object
+        other = dice_utilities.force_cube(other)
 
         new_dice = dice()
 
-        for i in range(len(self_rolls)):
-            for j in range(len(other_rolls)):
-                new_roll = self_rolls[i] - other_rolls[j]
+        for self_roll, self_chance in self.pdf.items():
+            for other_roll, other_chance in other.pdf.items():
+                # The outcome of these two rolls, is the difference of the rolls
+                new_roll = self_roll - other_roll
+                # If this roll is not a possible roll of the new dice, add it with probability of 0
                 if not (new_roll in new_dice.pdf):
                     new_dice.pdf[new_roll] = 0
-                new_dice.pdf[new_roll] += self_chances[i] * other_chances[j]
+                # Increase the chance of getting this outcome by the product of the probabilities of each die
+                new_dice.pdf[new_roll] += self_chance * other_chance
 
+        # Return the new die
         return new_dice
 
     def __mul__(self, other):
@@ -173,61 +180,98 @@ class dice:
         :param other: The second die to multiply. Can be a number
         :return: A new die, with statistics according to the product of the two dice
         """
-        if not isinstance(other, dice):
-            new_other = dice()
-            new_other.pdf[other] = 1
-            other = new_other
 
-        self_rolls = list(self.pdf.keys())
-        self_chances = list(self.pdf.values())
-        other_rolls = list(other.pdf.keys())
-        other_chances = list(other.pdf.values())
+        # Force the <other> die to be a die object
+        other = dice_utilities.force_cube(other)
 
         new_dice = dice()
 
-        for i in range(len(self_rolls)):
-            for j in range(len(other_rolls)):
-                new_roll = self_rolls[i] * other_rolls[j]
+        for self_roll, self_chance in self.pdf.items():
+            for other_roll, other_chance in other.pdf.items():
+                # The outcome of these two rolls, is the product of the rolls
+                new_roll = self_roll * other_roll
+                # If this roll is not a possible roll of the new dice, add it with probability of 0
                 if not (new_roll in new_dice.pdf):
                     new_dice.pdf[new_roll] = 0
-                new_dice.pdf[new_roll] += self_chances[i] * other_chances[j]
+                # Increase the chance of getting this outcome by the product of the probabilities of each die
+                new_dice.pdf[new_roll] += self_chance * other_chance
 
+        # Return the new die
         return new_dice
 
     def __truediv__(self, other):
         """
-        Creates a die describing the quotient of a die with a number. Division is done in floating point calculation
-        :param other: The number to divide by
-        :return: A new die, with statistics according to the quotient of the die and the number
+        Creates a die describing the floating point division of two dice
+        :param other: The second die to divide by. Can be a number
+        :return: A new die, with statistics according to the division of the two dice
         """
+
+        # Force the <other> die to be a die object
+        other = dice_utilities.force_cube(other)
+
         new_dice = dice()
-        for roll, chance in self.pdf.items():
-            new_dice.pdf[roll / other] = chance
+
+        for self_roll, self_chance in self.pdf.items():
+            for other_roll, other_chance in other.pdf.items():
+                # The outcome of these two rolls, is the division of the rolls
+                new_roll = self_roll / other_roll
+                # If this roll is not a possible roll of the new dice, add it with probability of 0
+                if not (new_roll in new_dice.pdf):
+                    new_dice.pdf[new_roll] = 0
+                # Increase the chance of getting this outcome by the product of the probabilities of each die
+                new_dice.pdf[new_roll] += self_chance * other_chance
+
+        # Return the new die
         return new_dice
 
     def __mod__(self, other):
         """
-        Creates a die describing the modulus of a die with a number. Division is done in floating point calculation
-        :param other: The number to divide by
-        :return: A new die, with statistics according to the modulus of the die and the number
+        Creates a die describing the modulus of two dice
+        :param other: The second die to perform modulus by. Can be a number
+        :return: A new die, with statistics according to the modulus of the two dice
         """
+
+        # Force the <other> die to be a die object
+        other = dice_utilities.force_cube(other)
+
         new_dice = dice()
-        for roll, chance in self.pdf.items():
-            new_dice.pdf[roll % other] = chance
+
+        for self_roll, self_chance in self.pdf.items():
+            for other_roll, other_chance in other.pdf.items():
+                # The outcome of these two rolls, is the modulus of the rolls
+                new_roll = self_roll % other_roll
+                # If this roll is not a possible roll of the new dice, add it with probability of 0
+                if not (new_roll in new_dice.pdf):
+                    new_dice.pdf[new_roll] = 0
+                # Increase the chance of getting this outcome by the product of the probabilities of each die
+                new_dice.pdf[new_roll] += self_chance * other_chance
+
+        # Return the new die
         return new_dice
 
     def __floordiv__(self, other):
         """
-        Creates a die describing the quotient of a die with a number. Division is done in integer calculation
-        :param other: The number to divide by
-        :return: A new die, with statistics according to the quotient of the die and the number
+        Creates a die describing the integer division of two dice
+        :param other: The second die to divide by. Can be a number
+        :return: A new die, with statistics according to the division of the two dice
         """
+
+        # Force the <other> die to be a die object
+        other = dice_utilities.force_cube(other)
+
         new_dice = dice()
-        for roll, chance in self.pdf.items():
-            new_roll = roll // other
-            if not (new_roll in new_dice.pdf):
-                new_dice.pdf[new_roll] = 0
-            new_dice.pdf[new_roll] += chance
+
+        for self_roll, self_chance in self.pdf.items():
+            for other_roll, other_chance in other.pdf.items():
+                # The outcome of these two rolls, is the integer division of the rolls
+                new_roll = self_roll // other_roll
+                # If this roll is not a possible roll of the new dice, add it with probability of 0
+                if not (new_roll in new_dice.pdf):
+                    new_dice.pdf[new_roll] = 0
+                # Increase the chance of getting this outcome by the product of the probabilities of each die
+                new_dice.pdf[new_roll] += self_chance * other_chance
+
+        # Return the new die
         return new_dice
 
     def __pow__(self, power, modulo=None):
@@ -263,39 +307,21 @@ class dice:
 
     def adv(self, n=2):
         """
-        :return: A new die, describing rolling the current die twice, and taking the higher result
+        :return: A new die, describing rolling the current die n times, and taking the highest result
         """
         if n == 1:
             return self
         else:
-            # return highest(*((self,) * n))
-            if n % 2:
-                n_half_smaller = n // 2
-                n_half_larger = n - (n // 2)
-                die_half_smaller = self.adv(n_half_smaller)
-                die_half_larger = self.adv(n_half_larger)
-                return highest(die_half_smaller, die_half_larger)
-            else:
-                die_half = self.adv(n / 2)
-                return highest(die_half, die_half)
+            return self.get_pos(0, n)
 
     def dis(self, n=2):
         """
-        :return: A new die, describing rolling the current die twice, and taking the lower result
+        :return: A new die, describing rolling the current die n times, and taking the lowest result
         """
         if n == 1:
             return self
         else:
-            # return lowest(*((self,) * n))
-            if n % 2:
-                n_half_smaller = n // 2
-                n_half_larger = n - (n // 2)
-                die_half_smaller = self.adv(n_half_smaller)
-                die_half_larger = self.adv(n_half_larger)
-                return lowest(die_half_smaller, die_half_larger)
-            else:
-                die_half = self.adv(n / 2)
-                return lowest(die_half, die_half)
+            return self.get_pos(n-1, n)
 
     def exp(self, explode_on=None, max_depth=2):
         """
@@ -308,12 +334,14 @@ class dice:
         if explode_on is None:
             explode_on = self.max()
 
+        # Recursion stop case, if max_depth is zero, we never roll another die, so we simply return the <self> die
         if max_depth == 0:
             return self
 
-        new_dice = dice()
+        # Recursively call exp with a smaller max_depth
         deeper_dice = self.exp(max_depth=max_depth - 1)
 
+        # Calculate the different outcomes and probabilities for the <self> and <deeper_dice> die
         self_rolls = list(self.pdf.keys())
         self_chances = list(self.pdf.values())
         deeper_dice_rolls = list(deeper_dice.pdf.keys())
@@ -321,15 +349,27 @@ class dice:
 
         new_dice = dice()
 
-        for i in range(len(self_rolls)):
-            for j in range(len(deeper_dice_rolls)):
-                if self_rolls[i] == explode_on:
-                    new_roll = self_rolls[i] + deeper_dice_rolls[j]
-                else:
-                    new_roll = self_rolls[i]
+        for self_roll, self_chance in self.pdf.items():
+            # If the value roll for the <self> die is the value it explodes on, consider the <deeper_dice> die
+            if self_roll == explode_on:
+                for deeper_dice_roll, deeper_dice_chance in deeper_dice.pdf.items():
+                    # The outcome of these two rolls, is the sum of the rolls
+                    new_roll = self_roll + deeper_dice_roll
+                    # If this roll is not a possible roll of the new dice, add it with probability of 0
+                    if not (new_roll in new_dice.pdf):
+                        new_dice.pdf[new_roll] = 0
+                    # Increase the chance of getting this outcome by the product of the probabilities of each die
+                    new_dice.pdf[new_roll] += self_chance * deeper_dice_chance
+
+            # If the <self> die did not explode, ignore the <deeper_dice> die
+            else:
+                # The outcome of these two rolls, is only first value rolled (since it did not explode)
+                new_roll = self_roll
+                # If this roll is not a possible roll of the new dice, add it with probability of 0
                 if not (new_roll in new_dice.pdf):
                     new_dice.pdf[new_roll] = 0
-                new_dice.pdf[new_roll] += self_chances[i] * deeper_dice_chances[j]
+                # Increase the chance of getting this outcome by the product of the probability of the first die
+                new_dice.pdf[new_roll] += self_chance
 
         return new_dice
 
@@ -341,23 +381,21 @@ class dice:
         :return: A new die
         """
 
+        # Transform the tuple to a list
         match_list = list(args)
 
-        if not isinstance(match_list, list):
-            match_list = [match_list]
-
-        # flat = lambda S: S if S == [] else (flat(S[0]) + flat(S[1:]) if isinstance(S[0], list) else S[:1] + flat(S[1:]))
+        # Flatten the nested list
         flattened_match_list = dice_utilities.flatten(match_list)
 
         new_dice = dice()
-        self_rolls = list(self.pdf.keys())
-        self_chances = list(self.pdf.values())
 
-        for i in range(len(self_rolls)):
-            new_roll = flattened_match_list.count(self_rolls[i])
+        for roll, chance in self.pdf.items():
+            # The roll of the new die is how many times the roll of the <self> die appears the match list
+            new_roll = flattened_match_list.count(roll)
+            # If this roll is not a possible roll of the new dice, add it with probability of 0
             if not (new_roll in new_dice.pdf):
                 new_dice.pdf[new_roll] = 0
-            new_dice.pdf[new_roll] += self_chances[i]
+            new_dice.pdf[new_roll] += chance
 
         return new_dice
 
@@ -369,19 +407,25 @@ class dice:
         :return: The new die
         """
 
-        if not isinstance(die_if_true, dice):
-            die_if_true = from_const(die_if_true)
-        if not isinstance(die_if_false, dice):
-            die_if_false = from_const(die_if_false)
+        die_if_true = dice_utilities.force_cube(die_if_true)
+        die_if_false = dice_utilities.force_cube(die_if_false)
 
         new_dice = dice()
 
+        # First loop over all the rolls of the <die_if_false> die
+        # Since it is the first outcome we test, we don't need to see if it is already in the dictionary of the new die
         for roll, chance in die_if_false.pdf.items():
+            # The chance to get this roll is the chance to get a false value (self.pdf[0])
+            # times the chance to get the roll given a false value (chance)
             new_dice.pdf[roll] = chance * self.pdf[0]
 
+        # Loop over all the rolls of the <die_if_true> die
         for roll, chance in die_if_true.pdf.items():
+            # We now need to check if this roll is in the dictionary. If not, create it with zero probability
             if roll not in new_dice.pdf.keys():
                 new_dice.pdf[roll] = 0
+            # The chance to get this roll is the chance to get a true value (self.pdf[1])
+            # times the chance to get the roll given a true value (chance)
             new_dice.pdf[roll] += chance * self.pdf[1]
 
         return new_dice
@@ -393,21 +437,30 @@ class dice:
         :return: The new die
         """
 
-        if isinstance(args[0], list):
-            other_dice_list = list(args[0])
+        # Create a variable called <other_dice_list> which is a list
+        if len(args) == 1:
+            # If the user gave one argument, which is a list, use it as the list
+            if isinstance(args[0], list):
+                other_dice_list = args[0]
+            # If the user gave one argument, which is a value, treat it as a list of length 1
+            else:
+                other_dice_list = [args[0]]
         else:
+            # Otherwise, turn the tuple into a list
             other_dice_list = list(args)
 
+        # Force each element in the list to be a die
         for i in range(len(other_dice_list)):
-            if not isinstance(other_dice_list[i], dice):
-                other_dice_list[i] = from_const(other_dice_list[i])
+            other_dice_list[i] = dice_utilities.force_cube(other_dice_list[i])
 
         new_dice = dice()
 
         for self_roll, self_chance in self.pdf.items():
             for other_roll, other_chance in other_dice_list[self_roll].pdf.items():
+                # If this roll is not a possible roll of the new dice, add it with probability of 0
                 if other_roll not in new_dice.pdf.keys():
                     new_dice.pdf[other_roll] = 0
+                # Increase the chance of getting this outcome by the product of the probabilities of each die
                 new_dice.pdf[other_roll] += self_chance * other_chance
 
         return new_dice
@@ -416,7 +469,8 @@ class dice:
         """
         Transforms the die according to a dictionary
         :param roll_dictionary: A dictionary describing the transformation, has <float> input and <die>/<float> output
-        :param default_value: Optional parameter. If given, values that do not have a dictionary value will get this value instead
+        :param default_value: Optional parameter.
+        If given, values that do not have a dictionary value will get this value instead
         :return: The new die
         """
 
@@ -428,20 +482,20 @@ class dice:
             if roll in roll_dictionary.keys():
                 new_value = roll_dictionary[roll]
                 # Transform the new roll into a die if it is not already
-                if not isinstance(new_value, dice):
-                    new_value = from_const(new_value)
+                new_value = dice_utilities.force_cube(new_value)
                 for new_roll, new_chance in new_value.pdf.items():
                     if not (new_roll in new_dice.pdf):
                         new_dice.pdf[new_roll] = 0
                     new_dice.pdf[new_roll] += chance * new_chance
             else:
                 if default_value is None:
+                    # If the dictionary doesn't have information about this roll, and there is no default value,
+                    # raise an error
                     raise ()
                 else:
                     new_value = default_value
                     # Transform the new roll into a die if it is not already
-                    if not isinstance(new_value, dice):
-                        new_value = from_const(new_value)
+                    new_value = dice_utilities.force_cube(new_value)
                     for new_roll, new_chance in new_value.pdf.items():
                         if not (new_roll in new_dice.pdf):
                             new_dice.pdf[new_roll] = 0
@@ -458,7 +512,6 @@ class dice:
 
         # If pos_index is a list, calculate the PDF by looping over all ordered combinations
         if isinstance(pos_index, list):
-            num_of_values = len(self.pdf.keys())
             new_dice = dice()
             combs = dice_utilities.generate_all_ordered_lists(sorted(self.pdf.keys()), num_dice, True)
             for comb in combs:
@@ -489,6 +542,8 @@ class dice:
             cdf = self.at_most()
             new_dice = dice()
             n = num_dice
+            # In maths, the first order statistics is the lowest value, not highest
+            # So we change the pos_index variable accordingly
             r = n - pos_index
             for roll, chance in pdf.items():
                 sum_res = 0
@@ -499,7 +554,6 @@ class dice:
                     norm_fact = math.comb(n, j)
                     factor1 = p3 ** j * ((p1 + p2) ** (n - j))
                     factor2 = (p2 + p3) ** j * (p1 ** (n - j))
-
                     sum_res += norm_fact * (factor1 - factor2)
                 new_dice.pdf[roll] = sum_res
 
@@ -508,217 +562,240 @@ class dice:
     # ~~~~~~~~~ Overloaded Comparative Operations ~~~~~~~~~
 
     def __lt__(self, other):
-        if not isinstance(other, dice):
-            new_other = dice()
-            new_other.pdf[other] = 1
-            other = new_other
+        """
+        Creates a boolean die (can roll 0 [false] or 1 [true])
+        The new die describes if <self> is less than <other>
+        :param other: The second die to compare <self> to. Can be a number
+        :return: The new boolean die
+        """
+        other = dice_utilities.force_cube(other)
 
-        self_rolls = list(self.pdf.keys())
-        self_chances = list(self.pdf.values())
-        other_rolls = list(other.pdf.keys())
-        other_chances = list(other.pdf.values())
-
+        # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
         new_dice = dice()
         new_dice.pdf[0] = 0
         new_dice.pdf[1] = 0
 
-        for i in range(len(self_rolls)):
-            for j in range(len(other_rolls)):
-                new_roll = (self_rolls[i] < other_rolls[j]) + 0
-                new_dice.pdf[new_roll] += self_chances[i] * other_chances[j]
+        for self_roll, self_chance in self.pdf.items():
+            for other_roll, other_chance in other.pdf.items():
+                # The new roll is the comparison result of the <self> and <other> die.
+                # We add 0 to force the comparison to return a number 0/1 and not False/True
+                new_roll = (self_roll < other_roll) + 0
+                new_dice.pdf[new_roll] += self_chance * other_chance
 
         return new_dice
 
     def __le__(self, other):
-        if not isinstance(other, dice):
-            new_other = dice()
-            new_other.pdf[other] = 1
-            other = new_other
+        """
+        Creates a boolean die (can roll 0 [false] or 1 [true])
+        The new die describes if <self> is less than or equal to <other>
+        :param other: The second die to compare <self> to. Can be a number
+        :return: The new boolean die
+        """
+        other = dice_utilities.force_cube(other)
 
-        self_rolls = list(self.pdf.keys())
-        self_chances = list(self.pdf.values())
-        other_rolls = list(other.pdf.keys())
-        other_chances = list(other.pdf.values())
-
+        # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
         new_dice = dice()
         new_dice.pdf[0] = 0
         new_dice.pdf[1] = 0
 
-        for i in range(len(self_rolls)):
-            for j in range(len(other_rolls)):
-                new_roll = (self_rolls[i] <= other_rolls[j]) + 0
-                new_dice.pdf[new_roll] += self_chances[i] * other_chances[j]
+        for self_roll, self_chance in self.pdf.items():
+            for other_roll, other_chance in other.pdf.items():
+                # The new roll is the comparison result of the <self> and <other> die.
+                # We add 0 to force the comparison to return a number 0/1 and not False/True
+                new_roll = (self_roll <= other_roll) + 0
+                new_dice.pdf[new_roll] += self_chance * other_chance
 
         return new_dice
 
     def __eq__(self, other):
-        if not isinstance(other, dice):
-            new_other = dice()
-            new_other.pdf[other] = 1
-            other = new_other
+        """
+        Creates a boolean die (can roll 0 [false] or 1 [true])
+        The new die describes if <self> is equal to <other>
+        :param other: The second die to compare <self> to. Can be a number
+        :return: The new boolean die
+        """
+        other = dice_utilities.force_cube(other)
 
-        self_rolls = list(self.pdf.keys())
-        self_chances = list(self.pdf.values())
-        other_rolls = list(other.pdf.keys())
-        other_chances = list(other.pdf.values())
-
+        # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
         new_dice = dice()
         new_dice.pdf[0] = 0
         new_dice.pdf[1] = 0
 
-        for i in range(len(self_rolls)):
-            for j in range(len(other_rolls)):
-                new_roll = (self_rolls[i] == other_rolls[j]) + 0
-                new_dice.pdf[new_roll] += self_chances[i] * other_chances[j]
+        for self_roll, self_chance in self.pdf.items():
+            for other_roll, other_chance in other.pdf.items():
+                # The new roll is the comparison result of the <self> and <other> die.
+                # We add 0 to force the comparison to return a number 0/1 and not False/True
+                new_roll = (self_roll == other_roll) + 0
+                new_dice.pdf[new_roll] += self_chance * other_chance
 
         return new_dice
 
     def __ne__(self, other):
-        if not isinstance(other, dice):
-            new_other = dice()
-            new_other.pdf[other] = 1
-            other = new_other
+        """
+        Creates a boolean die (can roll 0 [false] or 1 [true])
+        The new die describes if <self> is not equal to <other>
+        :param other: The second die to compare <self> to. Can be a number
+        :return: The new boolean die
+        """
+        other = dice_utilities.force_cube(other)
 
-        self_rolls = list(self.pdf.keys())
-        self_chances = list(self.pdf.values())
-        other_rolls = list(other.pdf.keys())
-        other_chances = list(other.pdf.values())
-
+        # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
         new_dice = dice()
         new_dice.pdf[0] = 0
         new_dice.pdf[1] = 0
 
-        for i in range(len(self_rolls)):
-            for j in range(len(other_rolls)):
-                new_roll = (self_rolls[i] != other_rolls[j]) + 0
-                new_dice.pdf[new_roll] += self_chances[i] * other_chances[j]
+        for self_roll, self_chance in self.pdf.items():
+            for other_roll, other_chance in other.pdf.items():
+                # The new roll is the comparison result of the <self> and <other> die.
+                # We add 0 to force the comparison to return a number 0/1 and not False/True
+                new_roll = (self_roll != other_roll) + 0
+                new_dice.pdf[new_roll] += self_chance * other_chance
 
         return new_dice
 
     def __gt__(self, other):
-        if not isinstance(other, dice):
-            new_other = dice()
-            new_other.pdf[other] = 1
-            other = new_other
+        """
+        Creates a boolean die (can roll 0 [false] or 1 [true])
+        The new die describes if <self> is greater than <other>
+        :param other: The second die to compare <self> to. Can be a number
+        :return: The new boolean die
+        """
+        other = dice_utilities.force_cube(other)
 
-        self_rolls = list(self.pdf.keys())
-        self_chances = list(self.pdf.values())
-        other_rolls = list(other.pdf.keys())
-        other_chances = list(other.pdf.values())
-
+        # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
         new_dice = dice()
         new_dice.pdf[0] = 0
         new_dice.pdf[1] = 0
 
-        for i in range(len(self_rolls)):
-            for j in range(len(other_rolls)):
-                new_roll = (self_rolls[i] > other_rolls[j]) + 0
-                new_dice.pdf[new_roll] += self_chances[i] * other_chances[j]
+        for self_roll, self_chance in self.pdf.items():
+            for other_roll, other_chance in other.pdf.items():
+                # The new roll is the comparison result of the <self> and <other> die.
+                # We add 0 to force the comparison to return a number 0/1 and not False/True
+                new_roll = (self_roll > other_roll) + 0
+                new_dice.pdf[new_roll] += self_chance * other_chance
 
         return new_dice
 
     def __ge__(self, other):
-        if not isinstance(other, dice):
-            new_other = dice()
-            new_other.pdf[other] = 1
-            other = new_other
+        """
+        Creates a boolean die (can roll 0 [false] or 1 [true])
+        The new die describes if <self> is greater than or equal to <other>
+        :param other: The second die to compare <self> to. Can be a number
+        :return: The new boolean die
+        """
+        other = dice_utilities.force_cube(other)
 
-        self_rolls = list(self.pdf.keys())
-        self_chances = list(self.pdf.values())
-        other_rolls = list(other.pdf.keys())
-        other_chances = list(other.pdf.values())
-
+        # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
         new_dice = dice()
         new_dice.pdf[0] = 0
         new_dice.pdf[1] = 0
 
-        for i in range(len(self_rolls)):
-            for j in range(len(other_rolls)):
-                new_roll = (self_rolls[i] >= other_rolls[j]) + 0
-                new_dice.pdf[new_roll] += self_chances[i] * other_chances[j]
+        for self_roll, self_chance in self.pdf.items():
+            for other_roll, other_chance in other.pdf.items():
+                # The new roll is the comparison result of the <self> and <other> die.
+                # We add 0 to force the comparison to return a number 0/1 and not False/True
+                new_roll = (self_roll >= other_roll) + 0
+                new_dice.pdf[new_roll] += self_chance * other_chance
 
         return new_dice
 
     # ~~~~~~~~~ Overloaded Boolean Operators ~~~~~~~~~
 
     def __and__(self, other):
-        if not isinstance(other, dice):
-            new_other = dice()
-            new_other.pdf[other] = 1
-            other = new_other
+        """
+        Creates a boolean die, describing the 'and' operation on two dice
+        Each die is treated as a boolean die, where a value of 0 is treated as false, and any other value is treated as true
+        :param other: The second die
+        :return: The new die
+        """
+        other = dice_utilities.force_cube(other)
 
-        self_rolls = list(self.pdf.keys())
-        self_chances = list(self.pdf.values())
-        other_rolls = list(other.pdf.keys())
-        other_chances = list(other.pdf.values())
-
+        # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
         new_dice = dice()
         new_dice.pdf[0] = 0
         new_dice.pdf[1] = 0
 
-        for i in range(len(self_rolls)):
-            for j in range(len(other_rolls)):
-                self_roll_bool = self_rolls[i] != 0
-                other_roll_bool = other_rolls[j] != 0
+        for self_roll, self_chance in self.pdf.items():
+            for other_roll, other_chance in other.pdf.items():
+                # We turn the rolls to a boolean value
+                # A roll of 0 is treated as false, and any other roll is treated as true
+                self_roll_bool = self_roll != 0
+                other_roll_bool = other_roll != 0
+                # The new roll is the comparison result of the <self> and <other> die.
+                # We add 0 to force the comparison to return a number 0/1 and not False/True
                 new_roll = (self_roll_bool and other_roll_bool) + 0
-                new_dice.pdf[new_roll] += self_chances[i] * other_chances[j]
+                new_dice.pdf[new_roll] += self_chance * other_chance
 
         return new_dice
 
     def __or__(self, other):
-        if not isinstance(other, dice):
-            new_other = dice()
-            new_other.pdf[other] = 1
-            other = new_other
+        """
+        Creates a boolean die, describing the 'or' operation on two dice
+        Each die is treated as a boolean die, where a value of 0 is treated as false, and any other value is treated as true
+        :param other: The second die
+        :return: The new die
+        """
+        other = dice_utilities.force_cube(other)
 
-        self_rolls = list(self.pdf.keys())
-        self_chances = list(self.pdf.values())
-        other_rolls = list(other.pdf.keys())
-        other_chances = list(other.pdf.values())
-
+        # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
         new_dice = dice()
         new_dice.pdf[0] = 0
         new_dice.pdf[1] = 0
 
-        for i in range(len(self_rolls)):
-            for j in range(len(other_rolls)):
-                self_roll_bool = self_rolls[i] != 0
-                other_roll_bool = other_rolls[j] != 0
+        for self_roll, self_chance in self.pdf.items():
+            for other_roll, other_chance in other.pdf.items():
+                # We turn the rolls to a boolean value
+                # A roll of 0 is treated as false, and any other roll is treated as true
+                self_roll_bool = self_roll != 0
+                other_roll_bool = other_roll != 0
+                # The new roll is the comparison result of the <self> and <other> die.
+                # We add 0 to force the comparison to return a number 0/1 and not False/True
                 new_roll = (self_roll_bool or other_roll_bool) + 0
-                new_dice.pdf[new_roll] += self_chances[i] * other_chances[j]
+                new_dice.pdf[new_roll] += self_chance * other_chance
 
         return new_dice
 
     def __xor__(self, other):
-        if not isinstance(other, dice):
-            new_other = dice()
-            new_other.pdf[other] = 1
-            other = new_other
+        """
+        Creates a boolean die, describing the 'xor' operation on two dice
+        Each die is treated as a boolean die, where a value of 0 is treated as false, and any other value is treated as true
+        :param other: The second die
+        :return: The new die
+        """
+        other = dice_utilities.force_cube(other)
 
-        self_rolls = list(self.pdf.keys())
-        self_chances = list(self.pdf.values())
-        other_rolls = list(other.pdf.keys())
-        other_chances = list(other.pdf.values())
-
+        # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
         new_dice = dice()
         new_dice.pdf[0] = 0
         new_dice.pdf[1] = 0
 
-        for i in range(len(self_rolls)):
-            for j in range(len(other_rolls)):
-                self_roll_bool = self_rolls[i] != 0
-                other_roll_bool = other_rolls[j] != 0
+        for self_roll, self_chance in self.pdf.items():
+            for other_roll, other_chance in other.pdf.items():
+                # We turn the rolls to a boolean value
+                # A roll of 0 is treated as false, and any other roll is treated as true
+                self_roll_bool = self_roll != 0
+                other_roll_bool = other_roll != 0
+                # The new roll is the comparison result of the <self> and <other> die.
+                # We add 0 to force the comparison to return a number 0/1 and not False/True
                 new_roll = (self_roll_bool != other_roll_bool) + 0
-                new_dice.pdf[new_roll] += self_chances[i] * other_chances[j]
+                new_dice.pdf[new_roll] += self_chance * other_chance
 
         return new_dice
 
     def __invert__(self):
+        """
+        Creates a boolean die, describing the inversion operator on a die
+        The die is treated as a boolean die, where a value of 0 is treated as false, and any other value is treated as true
+        :return: The new die
+        """
 
+        # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
         new_dice = dice()
         new_dice.pdf[0] = 0
         new_dice.pdf[1] = 0
         for roll, chance in self.pdf.items():
+            # We treat a roll of 0 on the <self> die as false, so after inversion, we return 1
+            # We treat any other roll on the <self> die as true, so after inversion, we return 0
             new_roll = 1 if roll == 0 else 0
             new_dice.pdf[new_roll] = chance
         return new_dice
@@ -736,89 +813,105 @@ class dice:
 
         new_dice = dice()
 
+        # If max_depth is 'inf', we calculate the statistics of the new die mathematically,
+        # by using conditional probability (i.e. pdf of <self> given lambda_func(<self>) = False)
         if max_depth == 'inf':
             self_rolls = list(self.pdf.keys())
             self_chances = list(self.pdf.values())
+            # The total probability of rolling a value that is not rerolled
             total_prob = sum([self_chances[i] for i in range(len(self_rolls)) if not lambda_cond(self_rolls[i])])
 
             for i in range(len(self_rolls)):
+                # We only add the value to the new die if it is not rerolled
                 if not lambda_cond(self_rolls[i]):
+                    # The chance to roll this new value, is the original chance,
+                    # normalized so the chance of rolling something is 1
                     new_dice.pdf[self_rolls[i]] = self_chances[i] / total_prob
 
+        # If max_depth is no 'inf', we calculate the statistics of the new die recursively
         else:
+            # Recursion stop case, if max_depth is 0, we don't reroll, regardless of the roll
             if max_depth == 0:
                 return self
 
+            # Recursively call the reroll function with a smaller max_depth
             deeper_dice = self.reroll_func(lambda_cond, max_depth=max_depth - 1)
 
-            self_rolls = list(self.pdf.keys())
-            self_chances = list(self.pdf.values())
-            deeper_dice_rolls = list(deeper_dice.pdf.keys())
-            deeper_dice_chances = list(deeper_dice.pdf.values())
+            for self_roll, self_chance in self.pdf.items():
+                # If the value roll for the <self> die is a value we reroll on, consider the <deeper_dice> die
+                if lambda_cond(self_roll):
+                    for deeper_dice_roll, deeper_dice_chance in deeper_dice.pdf.items():
+                        # The outcome of these two rolls, is the <deeper_dice> roll
+                        # If this roll is not a possible roll of the new dice, add it with probability of 0
+                        if not (deeper_dice_roll in new_dice.pdf):
+                            new_dice.pdf[deeper_dice_roll] = 0
+                        # Increase the chance of getting this outcome by the product of the probabilities of each die
+                        new_dice.pdf[deeper_dice_roll] += self_chance * deeper_dice_chance
 
-            new_dice = dice()
-
-            for i in range(len(self_rolls)):
-                for j in range(len(deeper_dice_rolls)):
-                    if lambda_cond(self_rolls[i]):
-                        new_roll = deeper_dice_rolls[j]
-                    else:
-                        new_roll = self_rolls[i]
+                # If the <self> die was not rerolled, ignore the <deeper_dice> die
+                else:
+                    # The outcome of these two rolls, is just first value rolled (since it was not rerolled)
+                    new_roll = self_roll
+                    # If this roll is not a possible roll of the new dice, add it with probability of 0
                     if not (new_roll in new_dice.pdf):
                         new_dice.pdf[new_roll] = 0
-                    new_dice.pdf[new_roll] += self_chances[i] * deeper_dice_chances[j]
+                    # Increase the chance of getting this outcome by the product of the probability of the first die
+                    new_dice.pdf[new_roll] += self_chance
 
         return new_dice
 
     def reroll_on(self, match_list, max_depth=1):
         """
-        Simulates rolling a dice, and rerolling the dice if the value is in match_list
+        Simulates rolling a die, and rerolling the dice if the value is in match_list
         :param match_list: A number or a list to compare. Can be a nested list
         :param max_depth: A parameter describing if the dice is rerolled multiple times if a bad result is continuously rolled
         Can be an integer (1 for only one reroll), or 'inf' for an infinite number of rerolls
         :return: A new die
         """
 
+        # If match_list is not a list, but a value, force it to be a list of length 1
         if not isinstance(match_list, list):
             match_list = [match_list]
 
-        # flat = lambda S: S if S == [] else (flat(S[0]) + flat(S[1:]) if isinstance(S[0], list) else S[:1] + flat(S[1:]))
+        # Flatten the match list, so it is not nested
         flattened_match_list = dice_utilities.flatten(match_list)
 
+        # Call the general reroll method, with the reroll condition being if the roll was on the reroll list
         return self.reroll_func(lambda x: x in flattened_match_list, max_depth)
 
 
 # ~~~~~~~~~ Custom Dice Constructors ~~~~~~~~~
 
-def d(l, n=1):
+def d(size, n=1):
     """
-    Constructs a new die, which is uniformly distributed over 1 .. l
-    :param l: The size of the die
+    Constructs a new die, which is uniformly distributed over 1 .. size
+    :param size: The size of the die
     :param n: How many dice are rolled
     :return: The new die
     """
     new_dice = dice()
     if n == 1:
-        for i in range(l):
-            new_dice.pdf[i + 1] = 1.0 / l
+        for i in range(size):
+            new_dice.pdf[i + 1] = 1.0 / size
 
     # This is not optimized, you should use d(k)**n
     else:
-        for s in range(n, l * n + 1):
+        for s in range(n, size * n + 1):
             curr_sum = 0
             factor0 = 1  # Running calculation of (-1)**k
             factor1 = 1  # Running calculation of comb(n,k)
-            for k in range((s - n) // l + 1):
-                curr_sum += factor0 * factor1 * math.comb(s - l * k - 1, n - 1)
+            for k in range((s - n) // size + 1):
+                curr_sum += factor0 * factor1 * math.comb(s - size * k - 1, n - 1)
                 factor0 *= -1
                 factor1 *= n - k
                 factor1 //= k + 1
-            new_dice.pdf[s] = curr_sum / (l ** n)
+            new_dice.pdf[s] = curr_sum / (size ** n)
     return new_dice
 
 
 def standard_dice():
     """
+    A helpful function that generates the 7 basic RPG dice. Use:
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
     :return: The basic 7 dice
     """
@@ -833,14 +926,14 @@ def standard_dice():
     return d4, d6, d8, d10, d12, d20, d100
 
 
-def from_const(k):
+def from_const(val):
     """
     Constructs a trivial die with only one value
-    :param k: The value of the die
+    :param val: The value of the die
     :return: The new die
     """
     new_dice = dice()
-    new_dice.pdf[k] = 1
+    new_dice.pdf[val] = 1
     return new_dice
 
 
@@ -863,8 +956,10 @@ def list2dice(values_list):
     """
     new_dice = dice()
     for elem in values_list:
+        # If elem isn't in the new die dictionary, set its probability to 0
         if not (elem in new_dice.pdf):
             new_dice.pdf[elem] = 0
+        # Since all rolls are equiprobable, the chance to get any result is 1 / total number of options
         new_dice.pdf[elem] += 1 / len(values_list)
 
     return new_dice
@@ -879,11 +974,19 @@ def range2dice(*args):
     :return: The new die
     """
 
-    if isinstance(args[0], list):
-        chance_list = args[0]
+    # Create a variable called <chance_list> which is a list
+    if len(args) == 1:
+        # If the user gave one argument, which is a list, use it as the list
+        if isinstance(args[0], list):
+            chance_list = args[0]
+        # If the user gave one argument, which is a value, treat it as a list of length 1
+        else:
+            chance_list = [args[0]]
     else:
+        # Otherwise, turn the tuple into a list
         chance_list = list(args)
 
+    # We normalize all probabilities so the sum of probabilities is 1
     norm_factor = sum(chance_list)
     chance_list_norm = [chance / norm_factor for chance in chance_list]
 
@@ -926,12 +1029,12 @@ def get_pos(dice_list, index_list=[]):
 
     # Turn each value in the dice list, to a trivial die with the same value
     for i in range(len(dice_list)):
-        if not isinstance(dice_list[i], dice):
-            dice_list[i] = from_const(dice_list[i])
+        dice_list[i] = dice_utilities.force_cube(dice_list[i])
 
     # Treat negative numbers as numbers counted from the end of the list
     mod_index_list = [(index_list[i] % len(dice_list)) for i in range(len(index_list))]
 
+    # Generate all combinations of dice that can be rolled
     all_combs = dice_utilities.generate_all_dice_combs(dice_list)
 
     # Sort all the combinations
@@ -940,22 +1043,26 @@ def get_pos(dice_list, index_list=[]):
         new_list = sorted(all_combs[i][1], reverse=True)
         all_combs[i] = (chance, new_list)
 
+    # If index_list is an empty list, we create a new dice list, which holds the die for each order statistics
     if index_list == []:
         new_dice_list = []
+        # We first loop over all the order statistics
         for index in range(len(dice_list)):
             new_dice = dice()
             for i in range(len(all_combs)):
-                # For each combination, take the values according to the index list, and sum the result
+                # For each combination, take the relevant value from the sorted list (to get the order statistic)
                 value = all_combs[i][1][index]
                 chance = all_combs[i][0]
-                # Update the new dice statistics according to the chances to get each value
+                # Update the new dices' statistics according to the chances to get each value
                 if not (value in new_dice.pdf):
                     new_dice.pdf[value] = 0
                 new_dice.pdf[value] += chance
+            # Add the new order statistics cube to the list
             new_dice_list.append(new_dice)
 
         return new_dice_list
     else:
+        # If index_list is not an empty list, we only return one die
         new_dice = dice()
         for i in range(len(all_combs)):
             # For each combination, take the values according to the index list, and sum the result
@@ -981,8 +1088,11 @@ def drop_pos(dice_list, index_list):
     if not isinstance(index_list, list):
         index_list = [index_list]
 
+    # We first perform modulus on each index, so -1 will turn to len(list)-1
     mod_index_list = [(index_list[i] % len(dice_list)) for i in range(len(index_list))]
+    # We convert the list of indices to drop, to a list of indices to keep
     keep_index_list = [i for i in range(len(dice_list)) if not (i in mod_index_list)]
+    # We call the get_pos method with the list of indices to keep
     return get_pos(dice_list, keep_index_list)
 
 
@@ -994,47 +1104,52 @@ def func(lambda_func, *args):
     :return: A new die, according to the function
     """
 
+    # Turn the tuple to a list
     dice_list = list(args)
 
     # Turn each value in the dice list, to a trivial die with the same value
     for i in range(len(dice_list)):
-        if not isinstance(dice_list[i], dice):
-            dice_list[i] = from_const(dice_list[i])
+        dice_list[i] = dice_utilities.force_cube(dice_list[i])
 
+    # Generate all combinations of the input dice
     all_combs = dice_utilities.generate_all_dice_combs(dice_list)
 
-    # The function returns a tuple
+    # Call the lambda function with the first combination, to see what it returns
+    # If it returns a tuple, this method will return a tuple of dice
+    # The length of the tuple we return is the same as the length of the tuple the lambda function returns
+    # We create a list now, but we will turn it to a tuple later
     if isinstance(lambda_func(*all_combs[0][1]), tuple):
         return_len = len(lambda_func(*all_combs[0][1]))
         new_dice_list = [dice() for i in range(return_len)]
-        for i in range(len(all_combs)):
-            # For each combination, take the values according to the given function
-            value = list(lambda_func(*all_combs[i][1]))
-            for j in range(return_len):
-                if not isinstance(value[j], dice):
-                    value[j] = from_const(value[j])
+        for comb in all_combs:
+            # For each combination, take the values according to the given function and current combination
+            value_list = list(lambda_func(*comb[1]))
+            # We generalize, and turn each returned value to a die (if it is not already)
+            for value in value_list:
+                value = dice_utilities.force_cube(value)
 
-            comb_chance = all_combs[i][0]
+            comb_chance = comb[0]
 
-            # Update the new dice statistics according to the chances to get each value
-            for j in range(return_len):
-                for roll, chance in value[j].pdf.items():
-                    if not (roll in new_dice_list[j].pdf):
-                        new_dice_list[j].pdf[roll] = 0
-                    new_dice_list[j].pdf[roll] += chance * comb_chance
+            # Loop over all the output from the function
+            # And update the new dice statistics according to the chances to get each value
+            for i in range(len(value_list)):
+                for roll, chance in value_list[i].pdf.items():
+                    if not (roll in new_dice_list[i].pdf):
+                        new_dice_list[i].pdf[roll] = 0
+                    new_dice_list[i].pdf[roll] += chance * comb_chance
 
-        return new_dice_list
+        return tuple(new_dice_list)
 
-    # The function returns a die or a number
+    # Now we treat the case where the lambda function returns a single value or die
     else:
         new_dice = dice()
-        for i in range(len(all_combs)):
+        for comb in all_combs:
             # For each combination, take the values according to the given function
-            value = lambda_func(*all_combs[i][1])
-            if not isinstance(value, dice):
-                value = from_const(value)
+            value = lambda_func(*comb[1])
+            value = dice_utilities.force_cube(value)
 
             comb_chance = all_combs[i][0]
+
             # Update the new dice statistics according to the chances to get each value
             for roll, chance in value.pdf.items():
                 if not (roll in new_dice.pdf):
@@ -1051,26 +1166,28 @@ def highest(*args):
     """
 
     if len(args) == 1:
+        # If we are given only one argument, and it is a list, treat it as though we received a tuple
         if isinstance(args[0], list):
             args = tuple(args[0])
+        # If we are only given one argument, and it is a die or a number, we have reached the recursion stop case
+        # The highest value of one argument, is the argument, so we simply return it
         else:
             return args[0]
-    first = highest(*args[:len(args) // 2])
-    other = highest(*args[len(args) // 2:])
 
-    first_rolls = list(first.pdf.keys())
-    first_chances = list(first.pdf.values())
-    other_rolls = list(other.pdf.keys())
-    other_chances = list(other.pdf.values())
+    # We recursively call the 'highest' function
+    # We split the input tuple in 2, and call the 'highest' function on each half
+    # We then find the highest between these two dice
+    first = highest(*args[:len(args) // 2])
+    second = highest(*args[len(args) // 2:])
 
     new_dice = dice()
 
-    for i in range(len(first_rolls)):
-        for j in range(len(other_rolls)):
-            new_roll = max(first_rolls[i], other_rolls[j])
+    for first_roll, first_chance in first.pdf.items():
+        for second_roll, second_chance in second.pdf.items():
+            new_roll = max(first_roll, second_roll)
             if not (new_roll in new_dice.pdf):
                 new_dice.pdf[new_roll] = 0
-            new_dice.pdf[new_roll] += first_chances[i] * other_chances[j]
+            new_dice.pdf[new_roll] += first_chance * second_chance
 
     return new_dice
 
@@ -1080,27 +1197,30 @@ def lowest(*args):
     :param args: Dice and values
     :return: A new die, describing taking the lowest value of the given dice and values
     """
+
     if len(args) == 1:
+        # If we are given only one argument, and it is a list, treat it as though we received a tuple
         if isinstance(args[0], list):
             args = tuple(args[0])
+        # If we are only given one argument, and it is a die or a number, we have reached the recursion stop case
+        # The lowest value of one argument, is the argument, so we simply return it
         else:
             return args[0]
-    first = lowest(*args[:len(args) // 2])
-    other = lowest(*args[len(args) // 2:])
 
-    first_rolls = list(first.pdf.keys())
-    first_chances = list(first.pdf.values())
-    other_rolls = list(other.pdf.keys())
-    other_chances = list(other.pdf.values())
+    # We recursively call the 'lowest' function
+    # We split the input tuple in 2, and call the 'lowest' function on each half
+    # We then find the lowest between these two dice
+    first = lowest(*args[:len(args) // 2])
+    second = lowest(*args[len(args) // 2:])
 
     new_dice = dice()
 
-    for i in range(len(first_rolls)):
-        for j in range(len(other_rolls)):
-            new_roll = min(first_rolls[i], other_rolls[j])
+    for first_roll, first_chance in first.pdf.items():
+        for second_roll, second_chance in second.pdf.items():
+            new_roll = min(first_roll, second_roll)
             if not (new_roll in new_dice.pdf):
                 new_dice.pdf[new_roll] = 0
-            new_dice.pdf[new_roll] += first_chances[i] * other_chances[j]
+            new_dice.pdf[new_roll] += first_chance * second_chance
 
     return new_dice
 
