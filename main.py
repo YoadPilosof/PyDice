@@ -4,6 +4,7 @@ import dice_utilities
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
 import numpy as np
+import math
 
 
 def general_examples():
@@ -166,5 +167,8 @@ def Theyandor():
 
 if __name__ == '__main__':
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
-    general_examples()
+
+    # dice.func(math.floor, d20/3).print_normal()
+
+    # general_examples()
     # Theyandor()

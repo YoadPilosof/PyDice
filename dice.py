@@ -106,9 +106,9 @@ class dice:
 
         # Since n=0 describes rolling once and not wrapping it in a list
         # We create a new variable that describes the actual number of rolls to simulate
-        nFix = n if n >= 1 else 1
+        n_fix = n if n >= 1 else 1
         # Randomly choose an index (describing a roll), with probabilities according to <chances>
-        index = random.choices(range(len(chances)), chances, k=nFix)
+        index = random.choices(range(len(chances)), chances, k=n_fix)
         # If the n argument wasn't given, return a value instead of a list
         if n == 0:
             return rolls[index[0]]
@@ -341,12 +341,6 @@ class dice:
         # Recursively call exp with a smaller max_depth
         deeper_dice = self.exp(max_depth=max_depth - 1)
 
-        # Calculate the different outcomes and probabilities for the <self> and <deeper_dice> die
-        self_rolls = list(self.pdf.keys())
-        self_chances = list(self.pdf.values())
-        deeper_dice_rolls = list(deeper_dice.pdf.keys())
-        deeper_dice_chances = list(deeper_dice.pdf.values())
-
         new_dice = dice()
 
         for self_roll, self_chance in self.pdf.items():
@@ -505,38 +499,30 @@ class dice:
     def get_pos(self, pos_index, num_dice):
         """
         Simulates rolling the <self> die <num_dice> times, and taking the <pos_index>th largest value
-        :param pos_index: Which die to take.
+        :param pos_index: Which die to take. Can be a list
         :param num_dice: How many dice were rolled
         :return: The new die
         """
 
+        # Transform the pos_index so negative values are counted from the end of the list
+        if isinstance(pos_index, list):
+            pos_index = [index % num_dice for index in pos_index]
+        else:
+            pos_index = pos_index % num_dice
+
         # If pos_index is a list, calculate the PDF by looping over all ordered combinations
         if isinstance(pos_index, list):
             new_dice = dice()
-            combs = dice_utilities.generate_all_ordered_lists(sorted(self.pdf.keys()), num_dice, True)
-            for comb in combs:
-                # Calculate how many times this list has appeared
-                norm_factor = 1
-                curr_run_length = 1
-                last_value = None
-                for value in comb:
-                    if value == last_value:
-                        curr_run_length += 1
-                    else:
-                        norm_factor *= math.factorial(curr_run_length)
-                        curr_run_length = 1
-                    last_value = value
-                norm_factor *= math.factorial(curr_run_length)
-                norm_factor = math.factorial(num_dice) // norm_factor
-
-                chance = math.prod([self.pdf[roll] for roll in comb]) * norm_factor
-                new_roll = sum([comb[index] for index in pos_index])
+            combs = dice_utilities.generate_all_ordered_lists(self, num_dice, True)
+            for comb_tuple in combs:
+                chance = comb_tuple[0]
+                new_roll = sum([comb_tuple[1][index] for index in pos_index])
 
                 if new_roll not in new_dice.pdf.keys():
                     new_dice.pdf[new_roll] = 0
                 new_dice.pdf[new_roll] += chance
 
-        # If pos_index is a value, calculate the PDF mathemathically
+        # If pos_index is a value, calculate the PDF mathematically
         else:
             pdf = self.pdf
             cdf = self.at_most()
@@ -557,6 +543,81 @@ class dice:
                     sum_res += norm_fact * (factor1 - factor2)
                 new_dice.pdf[roll] = sum_res
 
+        return new_dice
+
+    def drop_pos(self, pos_index, num_dice):
+        """
+        Simulates rolling the <self> die <num_dice> times, and dropping the <pos_index>th largest value
+        :param pos_index: Which die to drop. Can be a list
+        :param num_dice: How many dice were rolled
+        :return: The new die
+        """
+
+        # Turn pos_index to a list (if it is not already)
+        if not isinstance(pos_index, list):
+            pos_index = [pos_index]
+        # We first perform modulus on each index, so -1 will turn to num_dice-1
+        mod_pos_index = [index % num_dice for index in pos_index]
+        # We convert the list of indices to drop, to a list of indices to keep
+        keep_pos_index = [i for i in range(num_dice) if not (i in mod_pos_index)]
+        # We call the get_pos method with the list of indices to keep
+        return self.get_pos(keep_pos_index, num_dice)
+
+    def round(self):
+        """
+        Rounds the die result
+        :return: The new die
+        """
+
+        new_dice = dice()
+
+        for roll, chance in self.pdf.items():
+            new_roll = round(roll)
+            # If this roll is not a possible roll of the new dice, add it with probability of 0
+            if not (new_roll in new_dice.pdf):
+                new_dice.pdf[new_roll] = 0
+            # Increase the chance of getting this outcome by the product of the probabilities of each die
+            new_dice.pdf[new_roll] += chance * chance
+
+        # Return the new die
+        return new_dice
+
+    def floor(self):
+        """
+        Rounds down the die result
+        :return: The new die
+        """
+
+        new_dice = dice()
+
+        for roll, chance in self.pdf.items():
+            new_roll = math.floor(roll)
+            # If this roll is not a possible roll of the new dice, add it with probability of 0
+            if not (new_roll in new_dice.pdf):
+                new_dice.pdf[new_roll] = 0
+            # Increase the chance of getting this outcome by the product of the probabilities of each die
+            new_dice.pdf[new_roll] += chance * chance
+
+        # Return the new die
+        return new_dice
+
+    def ceil(self):
+        """
+        Rounds up the die result
+        :return: The new die
+        """
+
+        new_dice = dice()
+
+        for roll, chance in self.pdf.items():
+            new_roll = math.ceil(roll)
+            # If this roll is not a possible roll of the new dice, add it with probability of 0
+            if not (new_roll in new_dice.pdf):
+                new_dice.pdf[new_roll] = 0
+            # Increase the chance of getting this outcome by the product of the probabilities of each die
+            new_dice.pdf[new_roll] += chance * chance
+
+        # Return the new die
         return new_dice
 
     # ~~~~~~~~~ Overloaded Comparative Operations ~~~~~~~~~
@@ -1012,19 +1073,19 @@ def binary(chance):
 # ~~~~~~~~~ Other Dice Methods ~~~~~~~~~
 
 
-def get_pos(dice_list, index_list=[]):
+def get_pos(dice_list, index_list=None):
     """
     Simulates the result of rolling multiple dice, sorting them, taking values after the sorting, and summing the dice
     :param dice_list: A list, where each item is a die or a number
     :param index_list: An integer describing which die to take after sorting.
     If it is a list, take the dice in all the places according to the list, and sum the dice
-    If it is an empty list, the function will instead return a list of dice, such that
+    If it is None, the function will instead return a list of dice, such that
     output[i] = get_pos(dice_list, i)
     :return: The new die
     """
 
     # If index_list is just a number, turn it into a list of length 1
-    if not isinstance(index_list, list):
+    if (index_list is not None) and (not isinstance(index_list, list)):
         index_list = [index_list]
 
     # Turn each value in the dice list, to a trivial die with the same value
@@ -1032,7 +1093,8 @@ def get_pos(dice_list, index_list=[]):
         dice_list[i] = dice_utilities.force_cube(dice_list[i])
 
     # Treat negative numbers as numbers counted from the end of the list
-    mod_index_list = [(index_list[i] % len(dice_list)) for i in range(len(index_list))]
+    if index_list is not None:
+        index_list = [(index_list[i] % len(dice_list)) for i in range(len(index_list))]
 
     # Generate all combinations of dice that can be rolled
     all_combs = dice_utilities.generate_all_dice_combs(dice_list)
@@ -1043,8 +1105,8 @@ def get_pos(dice_list, index_list=[]):
         new_list = sorted(all_combs[i][1], reverse=True)
         all_combs[i] = (chance, new_list)
 
-    # If index_list is an empty list, we create a new dice list, which holds the die for each order statistics
-    if index_list == []:
+    # If index_list is None, we create a new dice list, which holds the die for each order statistics
+    if index_list is None:
         new_dice_list = []
         # We first loop over all the order statistics
         for index in range(len(dice_list)):
@@ -1062,11 +1124,11 @@ def get_pos(dice_list, index_list=[]):
 
         return new_dice_list
     else:
-        # If index_list is not an empty list, we only return one die
+        # If index_list is not None, we only return one die
         new_dice = dice()
         for i in range(len(all_combs)):
             # For each combination, take the values according to the index list, and sum the result
-            value = sum([all_combs[i][1][mod_index_list[j]] for j in range(len(mod_index_list))])
+            value = sum([all_combs[i][1][index_list[j]] for j in range(len(index_list))])
             chance = all_combs[i][0]
             # Update the new dice statistics according to the chances to get each value
             if not (value in new_dice.pdf):
@@ -1120,13 +1182,13 @@ def func(lambda_func, *args):
     # We create a list now, but we will turn it to a tuple later
     if isinstance(lambda_func(*all_combs[0][1]), tuple):
         return_len = len(lambda_func(*all_combs[0][1]))
-        new_dice_list = [dice() for i in range(return_len)]
+        new_dice_list = [dice() for _ in range(return_len)]
         for comb in all_combs:
             # For each combination, take the values according to the given function and current combination
             value_list = list(lambda_func(*comb[1]))
             # We generalize, and turn each returned value to a die (if it is not already)
-            for value in value_list:
-                value = dice_utilities.force_cube(value)
+            for i in range(len(value_list)):
+                value_list[i] = dice_utilities.force_cube(value_list[i])
 
             comb_chance = comb[0]
 
@@ -1148,7 +1210,7 @@ def func(lambda_func, *args):
             value = lambda_func(*comb[1])
             value = dice_utilities.force_cube(value)
 
-            comb_chance = all_combs[i][0]
+            comb_chance = comb[0]
 
             # Update the new dice statistics according to the chances to get each value
             for roll, chance in value.pdf.items():
@@ -1228,7 +1290,7 @@ def lowest(*args):
 # ~~~~~~~~~ Plotting ~~~~~~~~~
 
 
-def plot(dice_list, dynamic_vars=[], names=None, xlabel='Value', title=None):
+def plot(dice_list, dynamic_vars=None, names=None, xlabel='Value', title=None):
     """
     Plots statistics of dice
     :param dice_list: A die object, or a list of dice objects to plot the statistics of
@@ -1239,6 +1301,9 @@ def plot(dice_list, dynamic_vars=[], names=None, xlabel='Value', title=None):
     :param xlabel: Label for x-axis
     :param title: Optional title for the plot, replaces the default one
     """
+
+    if dynamic_vars is None:
+        dynamic_vars = []
 
     # If only one die was given, and not as a list, we turn it into a list of length 1
     if not isinstance(dice_list, list):
@@ -1411,8 +1476,8 @@ def plott(dice_list, x_list, param_list=None, draw_error_bars=False, xlabel='Val
     if not isinstance(dice_list[0], list):
         dice_list = [dice_list]
 
-    mean_list = dice_utilities.evaluate_dice_list(lambda d: d.mean(), dice_list)
-    std_list = dice_utilities.evaluate_dice_list(lambda d: d.std(), dice_list)
+    mean_list = dice_utilities.evaluate_dice_list(lambda die: die.mean(), dice_list)
+    std_list = dice_utilities.evaluate_dice_list(lambda die: die.std(), dice_list)
     fig, ax = plt.subplots()
     if param_list is None:
         x = np.array(x_list[0])

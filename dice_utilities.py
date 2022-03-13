@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import copy
 import matplotlib.pyplot as plt
@@ -207,31 +209,76 @@ def generate_all_dice_combs(dice_list):
     return all_combs
 
 
-def generate_all_ordered_lists(values_list, N, reverse=False):
+def generate_all_ordered_lists_aux(die, N, reverse=False):
     """
-    Generates a list containing all combinations of values from values_list that are sorted
-    :param values_list: A sorted list describing the values of each element
-    :param N: Length of the list
+    Auxiliary method to be used by generate_all_ordered_lists
+    Generates a list of tuples containing all ordered combinations of values of the die
+    The first element is the probability of getting this combination (not counting permutations)
+    The second element is the list
+    The third argument describes how many times this combination can be permuted while being the same
+    The fourth argument describes the current run length (i.e. how many times the last item in the list appeared)
+    :param die: The die to simulate
+    :param N: How many dice were rolled
     :param reverse: Specifies if to sort the list in ascending or descending order
-    :return: A list of lists
+    :return: A list of tuples (float, list)
     """
 
     # Recursion stop case. For N = 1 (one die), the list of combinations is a list of all possible values
     if N == 1:
         # We wrap each element in a list, because we expect the function to return a list of lists
-        return [[value] for value in values_list]
+        return [(chance, [roll], 1, 1) for roll, chance in die.pdf.items()]
 
     new_combs = []
     # Recursively call the function with length-1
-    old_combs = generate_all_ordered_lists(values_list, N - 1, reverse)
+    old_combs = generate_all_ordered_lists_aux(die, N - 1, reverse)
     # Loop over all combinations of the first N-1 dice
-    for comb in old_combs:
+    for comb_tuple in old_combs:
+        comb_chance = comb_tuple[0]
+        comb = comb_tuple[1]
+        comb_count = comb_tuple[2]
+        comb_run_length = comb_tuple[3]
         # Loop over all values of the Nth die
-        for value in values_list:
-            # Only add a valid combination if the combination is sorted (ascending or descending according to <reverse>)
-            if (value >= comb[-1] and not reverse) or (value <= comb[-1] and reverse):
-                new_combs.append(comb + [value])
+        for roll, chance in die.pdf.items():
+            # If the roll is the same as the last item in the list, it is always valid
+            # (regardless of if it is sorted by ascending or descending order)
+            # We update the probability of the combination to be
+            # the product of the probabilities of the first N-1 elements, and the last element
+            # We increment the current run length by 1
+            # We update the permutation counter
+            if roll == comb[-1]:
+                new_combs.append((comb_chance * chance, comb + [roll], comb_count * (comb_run_length+1), comb_run_length + 1))
+            # If the roll is not the same as the last item in the list, we check if it is sorted according to <reverse>
+            # We update the probability of the combination to be
+            # the product of the probabilities of the first N-1 elements, and the last element
+            # We reset the current run length to 1
+            # The permutation counter remains the same
+            if (roll > comb[-1] and not reverse) or (roll < comb[-1] and reverse):
+                new_combs.append((comb_chance * chance, comb + [roll], comb_count, 1))
     return new_combs
+
+
+def generate_all_ordered_lists(die, N, reverse=False):
+    """
+    Generates a list of tuples containing all ordered combinations of values of the die
+    The first element is the probability of getting this combination (or permutations of this combination)
+    The second element is the list
+    :param die: The die to simulate
+    :param N: How many dice were rolled
+    :param reverse: Specifies if to sort the list in ascending or descending order
+    :return: A list of tuples (float, list)
+    """
+
+    # We first call the auxiliary method
+    aux_output = generate_all_ordered_lists_aux(die, N, reverse)
+    # We calculate the total number permutations of each combination
+    total_combs = math.factorial(N)
+    # We want to find how many combinations are permuted to each ordered list
+    # So we take to total number of permutations (<total_combs>),
+    # and divide it by the number of permutations that leave the list the same (i.e. the third element in the <aux_output> tuple)
+
+    # We process the tuple we got from the auxiliary method by calculating the probability of each combination (with permutation)
+    # and by removing unwanted elements in the tuples
+    return [(comb_tuple[0] * total_combs / comb_tuple[2], comb_tuple[1]) for comb_tuple in aux_output]
 
 
 def force_cube(value):
