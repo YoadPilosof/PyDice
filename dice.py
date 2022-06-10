@@ -61,7 +61,7 @@ class dice:
 
     def mean(self):
         """
-        :return: Returns the mean of the dice
+        :return: Returns the mean of the die
         """
         res = 0
         for roll, chance in self.pdf.items():
@@ -70,7 +70,7 @@ class dice:
 
     def std(self):
         """
-        :return: Returns the standard deviation of the dice
+        :return: Returns the standard deviation of the die
         """
 
         # Calculate the variance, and later take the square root
@@ -393,6 +393,16 @@ class dice:
 
         return new_dice
 
+    def count_attempts(self, max_depth):
+        q = self.pdf[0]
+        p = 1 - q
+        new_die = dice()
+        for i in range(max_depth):
+            new_die.pdf[i+1] = math.pow(q, i) * p
+        new_die.pdf[max_depth+1] = math.pow(q, max_depth)
+
+        return new_die
+
     def cond(self, die_if_true, die_if_false):
         """
         Uses the first boolean die to choose a second die
@@ -577,7 +587,7 @@ class dice:
             if not (new_roll in new_dice.pdf):
                 new_dice.pdf[new_roll] = 0
             # Increase the chance of getting this outcome by the product of the probabilities of each die
-            new_dice.pdf[new_roll] += chance * chance
+            new_dice.pdf[new_roll] += chance
 
         # Return the new die
         return new_dice
@@ -596,7 +606,7 @@ class dice:
             if not (new_roll in new_dice.pdf):
                 new_dice.pdf[new_roll] = 0
             # Increase the chance of getting this outcome by the product of the probabilities of each die
-            new_dice.pdf[new_roll] += chance * chance
+            new_dice.pdf[new_roll] += chance
 
         # Return the new die
         return new_dice
@@ -615,9 +625,28 @@ class dice:
             if not (new_roll in new_dice.pdf):
                 new_dice.pdf[new_roll] = 0
             # Increase the chance of getting this outcome by the product of the probabilities of each die
-            new_dice.pdf[new_roll] += chance * chance
+            new_dice.pdf[new_roll] += chance
 
         # Return the new die
+        return new_dice
+
+    def func(self, lambda_func):
+        """
+        Executes a generic, 1 argument function, on the <self> die
+        :param lambda_func: The function to execute
+        :return: The new die
+        """
+
+        new_dice = dice()
+
+        for self_roll, self_chance in self.pdf.items():
+            value = lambda_func(self_roll)
+            value = dice_utilities.force_cube(value)
+            for value_roll, value_chance in value.pdf.items():
+                if value_roll not in new_dice.pdf.keys():
+                    new_dice.pdf[value_roll] = 0
+                new_dice.pdf[value_roll] += self_chance * value_chance
+
         return new_dice
 
     # ~~~~~~~~~ Overloaded Comparative Operations ~~~~~~~~~
@@ -940,8 +969,35 @@ class dice:
         # Call the general reroll method, with the reroll condition being if the roll was on the reroll list
         return self.reroll_func(lambda x: x in flattened_match_list, max_depth)
 
+    def reroll_comp(self, sign, val, max_depth=1):
+        """
+        Rerolls the <self> die based on a comparison condition
+        :param sign: A string defining the comparison
+        :param val: The value to compare to
+        :param max_depth: A parameter describing if the dice is rerolled multiple times if a bad result is continuously rolled
+        Can be an integer (1 for only one reroll), or 'inf' for an infinite number of rerolls
+        :return: The new die
+        """
+
+        match sign:
+            case '>':
+                return self.reroll_func(lambda x: x > val, max_depth=max_depth)
+            case '>=':
+                return self.reroll_func(lambda x: x >= val, max_depth=max_depth)
+            case '<':
+                return self.reroll_func(lambda x: x < val, max_depth=max_depth)
+            case '<=':
+                return self.reroll_func(lambda x: x <= val, max_depth=max_depth)
+            case '==':
+                return self.reroll_func(lambda x: x == val, max_depth=max_depth)
+            case '!=':
+                return self.reroll_func(lambda x: x != val, max_depth=max_depth)
+            # If the sign is not one of those 6, raise an error
+            case _:
+                raise
 
 # ~~~~~~~~~ Custom Dice Constructors ~~~~~~~~~
+
 
 def d(size, n=1):
     """
@@ -1287,10 +1343,255 @@ def lowest(*args):
     return new_dice
 
 
+def chain_compare(*args):
+    """
+    Perform a chain comparison of dice
+    :param args: Alternating sequence of dice (or numbers) and signs. Must start with a die and end with a die
+    :return: A boolean die describing the result of the chain comparison
+    """
+    # If only three arguments are given, treat it as a normal comparison:
+    if len(args) == 3:
+        match args[1]:
+            case '>':
+                return dice_utilities.force_cube(args[0]) > dice_utilities.force_cube(args[2])
+            case '>=':
+                return dice_utilities.force_cube(args[0]) >= dice_utilities.force_cube(args[2])
+            case '<':
+                return dice_utilities.force_cube(args[0]) < dice_utilities.force_cube(args[2])
+            case '<=':
+                return dice_utilities.force_cube(args[0]) <= dice_utilities.force_cube(args[2])
+            case '==':
+                return dice_utilities.force_cube(args[0]) == dice_utilities.force_cube(args[2])
+            case '!=':
+                return dice_utilities.force_cube(args[0]) != dice_utilities.force_cube(args[2])
+
+    # Create a dictionary that hold only the cases where the comparison is True
+    # The key is the value of the last die
+    # The value is the probability
+    new_dict = {}
+
+    # Check the first comparison of the chain
+    die1 = dice_utilities.force_cube(args[0])
+    die2 = dice_utilities.force_cube(args[2])
+    # Loop over all combination of the two dice
+    for roll1, chance1 in die1.pdf.items():
+        for roll2, chance2 in die2.pdf.items():
+            # According to the sign, perform the correct comparison
+            match args[1]:
+                case '>':
+                    result = roll1 > roll2
+                case '>=':
+                    result = roll1 >= roll2
+                case '<':
+                    result = roll1 < roll2
+                case '<=':
+                    result = roll1 <= roll2
+                case '==':
+                    result = roll1 == roll2
+                case '!=':
+                    result = roll1 != roll2
+                # If the sign is not one of these 6, raise an error
+                case _:
+                    raise
+
+            # Update the <new_dict> if the result is true
+            if result:
+                # Add the value of the last die
+                if roll2 not in new_dict.keys():
+                    new_dict[roll2] = 0
+                new_dict[roll2] += chance1 * chance2
+
+    # Split <args> to a list of signs and a list of dice
+    sign_list = list(args[3::2])
+    dice_list = list(args[4::2])
+    # Change each die to a die class if it is not already
+    for i in range(len(dice_list)):
+        dice_list[i] = dice_utilities.force_cube(dice_list[i])
+
+    # Loop over each sign-die arguments
+    for i in range(len(sign_list)):
+        # Create a new dictionary that will hold the current results, and save the old one
+        old_dict = new_dict
+        new_dict = {}
+        # Loop over all <old_dict> items,
+        # i.e. loop over all comparison results up to this point, and all values of the last die
+        for dict_tuple, past_chance in old_dict.items():
+            # Loop over all the values of the current die
+            for roll, chance in dice_list[i].pdf.items():
+                # Perform comparison according to the sign
+                match sign_list[i]:
+                    case '>':
+                        result = dict_tuple > roll
+                    case '>=':
+                        result = dict_tuple >= roll
+                    case '<':
+                        result = dict_tuple < roll
+                    case '<=':
+                        result = dict_tuple <= roll
+                    case '==':
+                        result = dict_tuple == roll
+                    case '!=':
+                        result = dict_tuple != roll
+                    # If the sign is not one of these 6, raise an error
+                    case _:
+                        raise
+
+                # We only update the <new_dict> if the result is true
+                if result:
+                    if roll not in new_dict.keys():
+                        new_dict[roll] = 0
+                    new_dict[roll] += past_chance * chance
+
+    # Turn the <new_dict> variable to a die, by disregarding the second element
+    # (which describes the value of the last die in the comparison) of each key
+    new_dice = dice()
+    new_dice.pdf[1] = sum(new_dict.values())
+    new_dice.pdf[0] = 1 - new_dice.pdf[1]
+
+    return new_dice
+
+
+def count(dice_list, *args):
+    """
+    Simulates rolling a collection of dice, and checking if it appears in the list.
+    The value is based on the amount of times the roll appears in the list
+    :param dice_list: The collection of dice
+    :param args: A number or a list to compare. Can be a nested list
+    :return: A new die
+    """
+    return sum([die.count(*args) for die in dice_list])
+
+
 # ~~~~~~~~~ Plotting ~~~~~~~~~
 
 
-def plot(dice_list, dynamic_vars=None, names=None, xlabel='Value', title=None):
+def plot(dice_list, dynamic_vars=None, param_list=None, names=None, xlabel='Value', title=None):
+    d_fig, d_ax = plt.subplots()
+    i_fig = plt.figure()
+
+    if dynamic_vars is None:
+        dynamic_vars = []
+    if param_list is None:
+        param_list = []
+
+    # If only one die was given, and not as a list, we turn it into a list of length 1
+    if not isinstance(dice_list, list):
+        dice_list = [dice_list]
+
+    # If the name of the die is not a list, we turn it into a list of length 1
+    if names is None:
+        names = []
+        for i in range(len(dice_list)):
+            names.append('Die ' + str(i + 1))
+    else:
+        if not isinstance(names, list):
+            names = [names]
+
+
+    # Create the list of sliders according to the list of parameters given
+    sliders_list = []
+    slider_height = 0.05
+    slider_spacing = 0.00
+    total_slider_size = len(dynamic_vars) * (slider_height + slider_spacing) + 0.1
+    for i in range(len(dynamic_vars)):
+        dynamic_var = dynamic_vars[i]
+        slider_loc = slider_spacing * i + slider_height * i
+        ax_sld = plt.axes([0.1, slider_loc, 0.8, slider_height])
+        slider = Slider(ax=ax_sld,
+                        label=dynamic_var[0],
+                        valmin=dynamic_var[1],
+                        valinit=dynamic_var[2],
+                        valmax=dynamic_var[3],
+                        valstep=dynamic_var[4],
+                        initcolor='none')
+        sliders_list.append(slider)
+
+    # Define the function data, which gets the current mode (normal, atleast, atmost).
+    # The function gets the values of the sliders, and calls each die function to generate a list of dice
+    # It then calls the get_data_for_plot function, which turns it into a list of floats
+
+    # There aren't any dynamic variables - treat the dice as dice
+    if not dynamic_vars:
+        data = lambda mode: dice_utilities.get_data_for_plot(dice_list, mode[0], names)
+    # There are dynamic variables - treat the dice as functions
+    else:
+        data = lambda mode: dice_utilities.get_data_for_plot(
+            [die(*dice_utilities.extract_values_from_sliders(sliders_list)) for die in dice_list], mode[0], names)
+
+    # The current mode that is shown. It is a list so it can be mutable
+    chosen_mode = ['normal']
+    # Attach the function of updating the plot when the slider changes
+    for slider in sliders_list:
+        slider.on_changed(lambda event:
+                          dice_utilities.update_plot(d_fig, d_ax, lines_list, data(chosen_mode)))
+        # slider.on_changed(lambda event: print(chosen_mode))
+
+    # Create the list of line graphs for the different dice
+    lines_list = []
+    for i in range(len(dice_list)):
+        # The plot is empty at first, but it will be populated later
+        line, = d_ax.plot([], [], 'o-', linewidth=3, label='')
+        lines_list.append(line)
+
+    # Info about the buttons locations and sizes
+    button_sz_x = 2 / 14
+    button_sz_y = 1 / 21
+    button_spacing_x = 1 / 14
+    button_margin_x = (1 - (3 * button_sz_x) - (2 * button_spacing_x)) / 2
+    button_margin_y = 1 / 21
+    hovercolor = '0.575'
+
+    # Create the three buttons
+    # For each button we attach an event that occurs on click. In it, we update the 'global' variable chosen_mode
+    # We then update the plot according to the new mode
+
+    # Button - Normal
+    normal_ax = plt.axes(
+        [button_margin_x, 1 - button_margin_y, button_sz_x, button_sz_y])
+    normal_button = Button(normal_ax, 'Normal', hovercolor=hovercolor)
+
+    def normal_button_click(event):
+        chosen_mode[0] = 'normal'
+        dice_utilities.update_plot(d_fig, d_ax, lines_list, data(chosen_mode))
+
+    normal_button.on_clicked(normal_button_click)
+
+    # Button - At Least
+    atleast_ax = plt.axes(
+        [button_margin_x + (button_sz_x + button_spacing_x), 1 - button_margin_y, button_sz_x, button_sz_y])
+    atleast_button = Button(atleast_ax, 'At Least', hovercolor=hovercolor)
+
+    def atleast_button_click(event):
+        chosen_mode[0] = 'atleast'
+        dice_utilities.update_plot(d_fig, d_ax, lines_list, data(chosen_mode))
+
+    atleast_button.on_clicked(atleast_button_click)
+
+    # Button - At Most
+    atmost_ax = plt.axes(
+        [button_margin_x + (button_sz_x + button_spacing_x) * 2, 1 - button_margin_y, button_sz_x, button_sz_y])
+    atmost_button = Button(atmost_ax, 'At Most', hovercolor=hovercolor)
+
+    def atmost_button_click(event):
+        chosen_mode[0] = 'atmost'
+        dice_utilities.update_plot(d_fig, d_ax, lines_list, data(chosen_mode))
+
+    atmost_button.on_clicked(atmost_button_click)
+
+    # Simulate clicking on the 'normal' button to create the first plot
+    normal_button_click(None)
+
+    # General plot details
+    d_ax.set_xlabel(xlabel)
+    d_ax.set_ylabel('Probability')
+    if title is not None:
+        d_ax.set_title(title)
+    d_ax.legend()
+    d_ax.grid(alpha=0.3)
+    plt.show()
+
+
+def old_plot(dice_list, dynamic_vars=None, names=None, xlabel='Value', title=None):
     """
     Plots statistics of dice
     :param dice_list: A die object, or a list of dice objects to plot the statistics of
@@ -1426,7 +1727,7 @@ def plot(dice_list, dynamic_vars=None, names=None, xlabel='Value', title=None):
 
 def print_summary(dice_list, x_list):
     """
-    Plots basic information on a collection of dice
+    Prints basic information on a collection of dice
     :param dice_list: A list of dice
     :param x_list: Describes the values of the x-axis of the plot.
     """

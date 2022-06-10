@@ -287,6 +287,9 @@ def force_cube(value):
     :param value: The variable to force
     :return: A die object
     """
+    # Turn boolean into a number
+    if isinstance(value, bool):
+        value = value + 0
     # If value is already a die, simply return it
     if isinstance(value, dice.dice):
         return value

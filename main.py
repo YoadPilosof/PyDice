@@ -77,7 +77,7 @@ def general_examples():
     # d.print_at_least(name)
     # d.print_at_most(name)
     # print(d.std())
-    print("Elapsed Time = {} us".format(1000*1000*(time_end - time_start)))
+    print("Elapsed Time = {} us".format(1000 * 1000 * (time_end - time_start)))
 
     dice1 = d12
     dice2 = d6 ** 2
@@ -110,7 +110,7 @@ def general_examples():
     Xd4 = lambda x: d4 ** x
     # dice.plot(Xd4, names='Xd4', dynamic_vars=[('X', 1, 1, 20, 1)])
 
-    one_stat = dice.drop_pos([d6]*4, -1)
+    one_stat = dice.drop_pos([d6] * 4, -1)
     # one_stat.adv(6).print_normal()
     stats = []
     # for i in range(6):
@@ -144,15 +144,15 @@ def Theyandor():
                 total_dmg += d10 + d4 + dex
                 used_d4 = 0
             case 2:
-                total_dmg += d10**2 + d4**2 + dex
+                total_dmg += d10 ** 2 + d4 ** 2 + dex
                 used_d4 = 0
         match hit2:
             case 0:
                 total_dmg += 0
             case 1:
-                total_dmg += d10 + d4*used_d4 + dex
+                total_dmg += d10 + d4 * used_d4 + dex
             case 2:
-                total_dmg += d10**2 + d4**2*used_d4 + dex
+                total_dmg += d10 ** 2 + d4 ** 2 * used_d4 + dex
         return total_dmg
 
     dex = +4
@@ -165,10 +165,28 @@ def Theyandor():
     dice.plott(two_attack_dmg_list, list(range(10, 21)))
 
 
+def hold_person():
+    d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+    SaveDC = 15
+    WisSaveBonus = +3
+    MindSliver = d4
+    UnsettlingWords = d6
+
+    default_basic = d20 + WisSaveBonus >= SaveDC
+    default_recursive = default_basic.count_attempts(10) - 1
+    stack = (d20 + WisSaveBonus - MindSliver - UnsettlingWords >= SaveDC).cond(0, default_recursive + 1)
+    split = (d20 + WisSaveBonus - MindSliver >= SaveDC).cond(0, (d20 + WisSaveBonus - UnsettlingWords >= SaveDC).cond(0, default_recursive + 1) + 1)
+
+    stack.print_normal("Stacked")
+    split.print_normal("Split")
+    # default_basic.print_normal()
+
+
 if __name__ == '__main__':
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
 
-    # dice.func(math.floor, d20/3).print_normal()
+
 
     # general_examples()
     # Theyandor()
+    hold_person()
