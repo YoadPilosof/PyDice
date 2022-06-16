@@ -103,7 +103,7 @@ def get_data_for_plot(dice_list, mode, name_list):
     return data
 
 
-def update_plot(fig, ax, line_list, data):
+def update_plot_old(fig, ax, line_list, data):
     """
     Updates a plot with new data
     :param fig: Matplotlib figure object
@@ -117,6 +117,30 @@ def update_plot(fig, ax, line_list, data):
         line_list[i].set_xdata(data[i][0])
         line_list[i].set_ydata(data[i][1])
         line_list[i].set_label(data[i][2])
+
+    # Automatically scale the x-axis and y-axis according to the new data
+    ax.relim()
+    ax.autoscale_view()
+    # Refresh the legend
+    ax.legend()
+    # Refresh the figure
+    fig.canvas.draw_idle()
+
+
+def update_plot(fig, ax, line_list, data):
+    """
+    Updates a plot with new data
+    :param fig: Matplotlib figure object
+    :param ax: Matplotlib axes object
+    :param line_list: A list of line objects describing the different graphs in the plot
+    :param data: A list of tuples, describing the new data of the plot
+    """
+
+    # Update x-data, y-data and label for each graph
+    for i in range(len(line_list)):
+        line_list[i].set_xdata(np.array(data[0]))
+        line_list[i].set_ydata(np.array(data[1]))
+        line_list[i].set_label(data[2])
 
     # Automatically scale the x-axis and y-axis according to the new data
     ax.relim()
@@ -298,8 +322,11 @@ def force_cube(value):
         return dice.from_const(value)
 
 
-
-
-
-
+def set_button_callback(buttons_list, button, update_func):
+    def button_callback(event):
+        for b in buttons_list:
+            b.active = True
+        button.active = False
+        update_func()
+    return button_callback
 

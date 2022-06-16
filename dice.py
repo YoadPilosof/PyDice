@@ -13,29 +13,40 @@ class dice:
         self.pdf = {}
         self.name = "Unnamed Die"
 
-    def print_normal(self, name=None):
+    def __rshift__(self, other):
+        """
+        Name a die
+        """
+        self.name = other
+        return self
+
+    def __lshift__(self, other):
+        """
+        Name a die
+        """
+        self.name = other
+        return self
+
+    def print_normal(self):
         """
         Prints general info about the dice (mean and std), and prints a graph-like plot of the pdf of the dice
-        :param name: Optional Argument, if given, sets the dice name according to this argument
         """
 
-        dice_utilities.print_data(self, self.pdf, name)
+        dice_utilities.print_data(self, self.pdf, self.name)
 
-    def print_at_least(self, name=None):
+    def print_at_least(self):
         """
         Prints general info about the dice (mean and std), and prints a graph-like plot about the chance to get at least a value
-        :param name: Optional Argument, if given, sets the dice name according to this argument
         """
 
-        dice_utilities.print_data(self, self.at_least(), name)
+        dice_utilities.print_data(self, self.at_least(), self.name)
 
-    def print_at_most(self, name=None):
+    def print_at_most(self):
         """
         Prints general info about the dice (mean and std), and prints a graph-like plot about the chance to get at most a value
-        :param name: Optional Argument, if given, sets the dice name according to this argument
         """
 
-        dice_utilities.print_data(self, self.at_most(), name)
+        dice_utilities.print_data(self, self.at_most(), self.name)
 
     def at_least(self):
         """
@@ -321,7 +332,7 @@ class dice:
         if n == 1:
             return self
         else:
-            return self.get_pos(n-1, n)
+            return self.get_pos(n - 1, n)
 
     def exp(self, explode_on=None, max_depth=2):
         """
@@ -398,8 +409,8 @@ class dice:
         p = 1 - q
         new_die = dice()
         for i in range(max_depth):
-            new_die.pdf[i+1] = math.pow(q, i) * p
-        new_die.pdf[max_depth+1] = math.pow(q, max_depth)
+            new_die.pdf[i + 1] = math.pow(q, i) * p
+        new_die.pdf[max_depth + 1] = math.pow(q, max_depth)
 
         return new_die
 
@@ -996,6 +1007,7 @@ class dice:
             case _:
                 raise
 
+
 # ~~~~~~~~~ Custom Dice Constructors ~~~~~~~~~
 
 
@@ -1487,7 +1499,6 @@ def plot(dice_list, dynamic_vars=None, param_list=None, names=None, xlabel='Valu
         if not isinstance(names, list):
             names = [names]
 
-
     # Create the list of sliders according to the list of parameters given
     sliders_list = []
     slider_height = 0.05
@@ -1804,4 +1815,86 @@ def plott(dice_list, x_list, param_list=None, draw_error_bars=False, xlabel='Val
     ax.grid(alpha=0.3)
     if title is not None:
         ax.set_title(title)
+    plt.show()
+
+
+def plot_var(dice_list, dynamic_vars):
+    d_fig, d_ax = plt.subplots()
+    i_fig = plt.figure()
+
+    sliders_list = []
+    buttons_list = []
+    update = lambda: dice_utilities.update_plot(d_fig, d_ax, lines_list,
+                                                get_data_by_slider(dice_list, sliders_list, buttons_list))
+
+    # Parameters for the gui
+    pgui_wbutton = 0.2  # Width of the button
+    pgui_wslider = 0.6  # Width of the slider
+    pgui_wmargin = (1 - pgui_wbutton - pgui_wslider) / 3  # Margin in the x-axis between all components
+    pgui_hmargin = 0.1  # Margin in the y-axis between each button-slider pair
+    pgui_height = 0.1  # Height of the button and the slider
+    pgui_hovercolor = '0.575'  # Color of the button on hover
+
+    # Create the list of sliders according to the list of parameters given
+    for i in range(len(dynamic_vars)):
+        dynamic_var = dynamic_vars[i]
+        slider_loc = pgui_height * i + pgui_hmargin * i
+        ax_sld = plt.axes([2 * pgui_wmargin + pgui_wbutton, slider_loc, pgui_wslider, pgui_height])
+        slider = Slider(ax=ax_sld,
+                        label='',
+                        valmin=dynamic_var[1],
+                        valinit=dynamic_var[2],
+                        valmax=dynamic_var[3],
+                        valstep=dynamic_var[4],
+                        initcolor='none')
+        sliders_list.append(slider)
+
+    # Create the three buttons
+    # For each button we attach an event that occurs on click. In it, we update the 'global' variable chosen_mode
+    # We then update the plot according to the new mode
+
+    for i in range(len(dynamic_vars)):
+        dynamic_var = dynamic_vars[i]
+        button_loc = pgui_height * i + pgui_hmargin * i
+        ax_btn = plt.axes([pgui_wmargin, button_loc, pgui_wbutton, pgui_height])
+        button = Button(ax=ax_btn,
+                        label=dynamic_var[0],
+                        hovercolor=pgui_hovercolor)
+        button.on_clicked(dice_utilities.set_button_callback(buttons_list, button, update))
+        buttons_list.append(button)
+    buttons_list[0].active = False
+
+    def get_data_by_slider(p_dice_list, p_sliders_list, p_buttons_list):
+        pinned = 0
+        for i in range(len(p_buttons_list)):
+            if not p_buttons_list[i].active:
+                pinned = i
+        p_sliders_values = list(dice_utilities.extract_values_from_sliders(p_sliders_list))
+        pinned_slider = p_sliders_list[pinned]
+        pinned_values = list(
+            range(pinned_slider.valmin, pinned_slider.valmax + pinned_slider.valstep, pinned_slider.valstep))
+        dice_by_slider_list = []
+        for i in range(len(pinned_values)):
+            p_sliders_values[pinned] = pinned_values[i]
+            die = p_dice_list(*p_sliders_values)
+            dice_by_slider_list.append(die.mean())
+        return [pinned_values, dice_by_slider_list, die.name]
+
+    # Attach the function of updating the plot when the slider changes
+    for slider in sliders_list:
+        slider.on_changed(lambda event: update())
+
+    # Create the list of line graphs for the different dice
+    lines_list = []
+    for i in range(1):
+        # The plot is empty at first, but it will be populated later
+        line, = d_ax.plot(np.array([]), np.array([]), 'o-', linewidth=3, label='')
+        lines_list.append(line)
+
+    update()
+    # General plot details
+    # d_ax.set_xlabel(xlabel)
+    d_ax.set_ylabel('Mean')
+    # d_ax.legend()
+    d_ax.grid(alpha=0.3)
     plt.show()

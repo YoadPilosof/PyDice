@@ -184,9 +184,10 @@ def hold_person():
 
 if __name__ == '__main__':
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
-
+    d = lambda s, n: (dice.d(s) ** n << 'NdS')
+    dice.plot_var(d, [['Size',4,6,12,2], ['Number of Dice', 1,1,4,1]])
 
 
     # general_examples()
     # Theyandor()
-    hold_person()
+    # hold_person()
