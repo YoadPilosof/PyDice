@@ -175,19 +175,29 @@ def hold_person():
     default_basic = d20 + WisSaveBonus >= SaveDC
     default_recursive = default_basic.count_attempts(10) - 1
     stack = (d20 + WisSaveBonus - MindSliver - UnsettlingWords >= SaveDC).cond(0, default_recursive + 1)
-    split = (d20 + WisSaveBonus - MindSliver >= SaveDC).cond(0, (d20 + WisSaveBonus - UnsettlingWords >= SaveDC).cond(0, default_recursive + 1) + 1)
+    split = (d20 + WisSaveBonus - MindSliver >= SaveDC).cond(0, (d20 + WisSaveBonus - UnsettlingWords >= SaveDC).cond(0,
+                                                                                                                      default_recursive + 1) + 1)
 
     stack.print_normal("Stacked")
     split.print_normal("Split")
     # default_basic.print_normal()
 
 
+def attack_options():
+    d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+    light_attack = lambda str, prof, ac: (d20 + 2 * prof >= ac).cond(d8) << "Light Attack"
+    normal_attack = lambda str, prof, ac: (d20 + prof >= ac).cond(d8 + str) << "Normal Attack"
+    heavy_attack = lambda str, prof, ac: (d20 >= ac).cond(d8 + str + 2 * prof) << "Heavy Attack"
+    str_slider = ['STR Mod', 2, 4, 6, 1]
+    prof_slider = ['Proficiency Bonus', 2, 3, 6, 1]
+    ac_slider = ['Target AC', 10, 15, 25, 1]
+    dice.plot_var([light_attack, normal_attack, heavy_attack], [str_slider, prof_slider, ac_slider])
+
+
 if __name__ == '__main__':
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
-    d = lambda s, n: (dice.d(s) ** n << 'NdS')
-    dice.plot_var(d, [['Size',4,6,12,2], ['Number of Dice', 1,1,4,1]])
-
 
     # general_examples()
     # Theyandor()
     # hold_person()
+    attack_options()

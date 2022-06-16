@@ -127,7 +127,7 @@ def update_plot_old(fig, ax, line_list, data):
     fig.canvas.draw_idle()
 
 
-def update_plot(fig, ax, line_list, data):
+def update_plot(fig, ax, line_list, plot_args):
     """
     Updates a plot with new data
     :param fig: Matplotlib figure object
@@ -136,15 +136,17 @@ def update_plot(fig, ax, line_list, data):
     :param data: A list of tuples, describing the new data of the plot
     """
 
+    data = plot_args[0]
     # Update x-data, y-data and label for each graph
     for i in range(len(line_list)):
-        line_list[i].set_xdata(np.array(data[0]))
-        line_list[i].set_ydata(np.array(data[1]))
-        line_list[i].set_label(data[2])
+        line_list[i].set_xdata(np.array(data[i][0]))
+        line_list[i].set_ydata(np.array(data[i][1]))
+        line_list[i].set_label(data[i][2])
 
     # Automatically scale the x-axis and y-axis according to the new data
     ax.relim()
     ax.autoscale_view()
+    ax.set_xlabel(plot_args[1])
     # Refresh the legend
     ax.legend()
     # Refresh the figure

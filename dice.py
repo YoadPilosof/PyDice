@@ -414,7 +414,7 @@ class dice:
 
         return new_die
 
-    def cond(self, die_if_true, die_if_false):
+    def cond(self, die_if_true, die_if_false=0):
         """
         Uses the first boolean die to choose a second die
         :param die_if_true: The die to choose if the first one is True
@@ -1822,8 +1822,19 @@ def plot_var(dice_list, dynamic_vars):
     d_fig, d_ax = plt.subplots()
     i_fig = plt.figure()
 
+    # If only one die is given, turn it to a list
+    if not isinstance(dice_list, list):
+        dice_list = [dice_list]
+
+    # If only one dynamic var is given, and it is not wrapped correctly, wrap it in another list
+    if not isinstance(dynamic_vars[0], list):
+        dynamic_vars = [dynamic_vars]
+
+    # Define the lists that contain all the buttons and sliders
+    # We define them now because we need them for the update function
     sliders_list = []
     buttons_list = []
+    # Define the update function. Which updates the plot according to the sliders and buttons
     update = lambda: dice_utilities.update_plot(d_fig, d_ax, lines_list,
                                                 get_data_by_slider(dice_list, sliders_list, buttons_list))
 
@@ -1831,15 +1842,18 @@ def plot_var(dice_list, dynamic_vars):
     pgui_wbutton = 0.2  # Width of the button
     pgui_wslider = 0.6  # Width of the slider
     pgui_wmargin = (1 - pgui_wbutton - pgui_wslider) / 3  # Margin in the x-axis between all components
-    pgui_hmargin = 0.1  # Margin in the y-axis between each button-slider pair
-    pgui_height = 0.1  # Height of the button and the slider
+    pgui_hmargin = 0.02  # Margin in the y-axis between each button-slider pair
+    pgui_height = 0.05  # Height of the button and the slider
     pgui_hovercolor = '0.575'  # Color of the button on hover
 
     # Create the list of sliders according to the list of parameters given
     for i in range(len(dynamic_vars)):
         dynamic_var = dynamic_vars[i]
-        slider_loc = pgui_height * i + pgui_hmargin * i
+        # Calculate this slider's distance from the bottom of the page
+        slider_loc = pgui_height * i + pgui_hmargin * (i+1)
+        # Set the slider's location and size
         ax_sld = plt.axes([2 * pgui_wmargin + pgui_wbutton, slider_loc, pgui_wslider, pgui_height])
+        # Set the slider's minimal, initial, and maximal value, as well as the step size
         slider = Slider(ax=ax_sld,
                         label='',
                         valmin=dynamic_var[1],
@@ -1847,54 +1861,77 @@ def plot_var(dice_list, dynamic_vars):
                         valmax=dynamic_var[3],
                         valstep=dynamic_var[4],
                         initcolor='none')
+        # Attach the function of updating the plot when the slider changes
+        slider.on_changed(lambda event: update())
+        # Push the slider to the list of sliders
         sliders_list.append(slider)
-
-    # Create the three buttons
-    # For each button we attach an event that occurs on click. In it, we update the 'global' variable chosen_mode
-    # We then update the plot according to the new mode
 
     for i in range(len(dynamic_vars)):
         dynamic_var = dynamic_vars[i]
-        button_loc = pgui_height * i + pgui_hmargin * i
+        # Calculate this button's distance from the bottom of the page
+        button_loc = pgui_height * i + pgui_hmargin * (i+1)
+        # Set the button's location and size
         ax_btn = plt.axes([pgui_wmargin, button_loc, pgui_wbutton, pgui_height])
+        # Create the button
         button = Button(ax=ax_btn,
                         label=dynamic_var[0],
                         hovercolor=pgui_hovercolor)
+        # Set the buttons on click event
         button.on_clicked(dice_utilities.set_button_callback(buttons_list, button, update))
+        # Push the button to the list of buttons
         buttons_list.append(button)
+    # Set the first button to be the one that is initially pushed. We mark a pushed button by setting it inactive
     buttons_list[0].active = False
 
+    # Create a function that creates a data structure for the plot
     def get_data_by_slider(p_dice_list, p_sliders_list, p_buttons_list):
+        # We first find the index of the pushed button
         pinned = 0
         for i in range(len(p_buttons_list)):
             if not p_buttons_list[i].active:
                 pinned = i
+        # We get the values from all the slider
         p_sliders_values = list(dice_utilities.extract_values_from_sliders(p_sliders_list))
+        # We extract the variable of the pinned slider
         pinned_slider = p_sliders_list[pinned]
+        # We create a list of variables that this slider can get
+        # We use these values as the x-axis of the plot
         pinned_values = list(
             range(pinned_slider.valmin, pinned_slider.valmax + pinned_slider.valstep, pinned_slider.valstep))
-        dice_by_slider_list = []
-        for i in range(len(pinned_values)):
-            p_sliders_values[pinned] = pinned_values[i]
-            die = p_dice_list(*p_sliders_values)
-            dice_by_slider_list.append(die.mean())
-        return [pinned_values, dice_by_slider_list, die.name]
 
-    # Attach the function of updating the plot when the slider changes
-    for slider in sliders_list:
-        slider.on_changed(lambda event: update())
+        return_list = []
+        # We loop over all of the dice (i.e. all the lines in the plot)
+        for die in p_dice_list:
+            # For each one, we create a list:
+            # The first element is the values of the x-axis
+            # The second element is the values of the y-axis
+            # The third element is the name of this die
+            dice_by_slider_list = []
+            # For each value the pinned slider can get, we evaluate the die and take its average
+            for pinned_value in pinned_values:
+                # We change the list of variables, only at the index of the pinned slider
+                # We change its value according to the current one we're looping over
+                p_sliders_values[pinned] = pinned_value
+                # We then create an instantiation of the die by calling it with the arguments
+                die_inst = die(*p_sliders_values)
+                # We add the mean to the list of y-axis values
+                dice_by_slider_list.append(die_inst.mean())
+            return_list.append([pinned_values, dice_by_slider_list, die_inst.name])
+        # We also want to return the label of the current pushed button (for the x-axis)
+        # So we wrap the previous info with the label into a list
+        pinned_label = p_buttons_list[pinned].label
+        xlabelstr = pinned_label.get_text()
+        return [return_list, xlabelstr]
 
     # Create the list of line graphs for the different dice
     lines_list = []
-    for i in range(1):
+    for i in range(len(dynamic_vars)):
         # The plot is empty at first, but it will be populated later
         line, = d_ax.plot(np.array([]), np.array([]), 'o-', linewidth=3, label='')
         lines_list.append(line)
 
     update()
     # General plot details
-    # d_ax.set_xlabel(xlabel)
     d_ax.set_ylabel('Mean')
-    # d_ax.legend()
     d_ax.grid(alpha=0.3)
     plt.show()
