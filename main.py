@@ -1,5 +1,6 @@
 import dice
 import time
+import dnd
 import dice_utilities
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
@@ -185,9 +186,12 @@ def hold_person():
 
 def attack_options():
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
-    light_attack = lambda str, prof, ac: (d20 + 2 * prof >= ac).cond(d8) << "Light Attack"
-    normal_attack = lambda str, prof, ac: (d20 + prof >= ac).cond(d8 + str) << "Normal Attack"
-    heavy_attack = lambda str, prof, ac: (d20 >= ac).cond(d8 + str + 2 * prof) << "Heavy Attack"
+    light_attack = lambda str, prof, ac: \
+        dnd.hit(d20, str + prof * 2, ac).switch(0, d8, d8 ** 2) << "Light Attack"
+    normal_attack = lambda str, prof, ac: \
+        dnd.hit(d20, str + prof, ac).switch(0, d8 + str, d8 ** 2 + str) << "Normal Attack"
+    heavy_attack = lambda str, prof, ac: \
+        dnd.hit(d20, str, ac).switch(0, d8 + str + prof * 2, d8 ** 2 + str + prof * 2) << "Heavy Attack"
     str_slider = ['STR Mod', 2, 4, 6, 1]
     prof_slider = ['Proficiency Bonus', 2, 3, 6, 1]
     ac_slider = ['Target AC', 10, 15, 25, 1]
