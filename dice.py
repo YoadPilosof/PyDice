@@ -917,52 +917,23 @@ class dice:
         :return: A new die
         """
 
+        prob_rerollable = sum([chance for roll, chance in self.pdf.items() if lambda_cond(roll)])
+        prob_staying = sum([chance for roll, chance in self.pdf.items() if not lambda_cond(roll)])
+
+        if max_depth == 'inf':
+            final_prob_rerollable = 0
+            final_prob_staying = 1
+        else:
+            final_prob_rerollable = pow(prob_rerollable, max_depth)
+            final_prob_staying = 1 - final_prob_rerollable
+
         new_dice = dice()
 
-        # If max_depth is 'inf', we calculate the statistics of the new die mathematically,
-        # by using conditional probability (i.e. pdf of <self> given lambda_func(<self>) = False)
-        if max_depth == 'inf':
-            self_rolls = list(self.pdf.keys())
-            self_chances = list(self.pdf.values())
-            # The total probability of rolling a value that is not rerolled
-            total_prob = sum([self_chances[i] for i in range(len(self_rolls)) if not lambda_cond(self_rolls[i])])
-
-            for i in range(len(self_rolls)):
-                # We only add the value to the new die if it is not rerolled
-                if not lambda_cond(self_rolls[i]):
-                    # The chance to roll this new value, is the original chance,
-                    # normalized so the chance of rolling something is 1
-                    new_dice.pdf[self_rolls[i]] = self_chances[i] / total_prob
-
-        # If max_depth is no 'inf', we calculate the statistics of the new die recursively
-        else:
-            # Recursion stop case, if max_depth is 0, we don't reroll, regardless of the roll
-            if max_depth == 0:
-                return self
-
-            # Recursively call the reroll function with a smaller max_depth
-            deeper_dice = self.reroll_func(lambda_cond, max_depth=max_depth - 1)
-
-            for self_roll, self_chance in self.pdf.items():
-                # If the value roll for the <self> die is a value we reroll on, consider the <deeper_dice> die
-                if lambda_cond(self_roll):
-                    for deeper_dice_roll, deeper_dice_chance in deeper_dice.pdf.items():
-                        # The outcome of these two rolls, is the <deeper_dice> roll
-                        # If this roll is not a possible roll of the new dice, add it with probability of 0
-                        if not (deeper_dice_roll in new_dice.pdf):
-                            new_dice.pdf[deeper_dice_roll] = 0
-                        # Increase the chance of getting this outcome by the product of the probabilities of each die
-                        new_dice.pdf[deeper_dice_roll] += self_chance * deeper_dice_chance
-
-                # If the <self> die was not rerolled, ignore the <deeper_dice> die
-                else:
-                    # The outcome of these two rolls, is just first value rolled (since it was not rerolled)
-                    new_roll = self_roll
-                    # If this roll is not a possible roll of the new dice, add it with probability of 0
-                    if not (new_roll in new_dice.pdf):
-                        new_dice.pdf[new_roll] = 0
-                    # Increase the chance of getting this outcome by the product of the probability of the first die
-                    new_dice.pdf[new_roll] += self_chance
+        for roll, chance in self.pdf.items():
+            if lambda_cond(roll):
+                new_dice.pdf[roll] = chance * final_prob_rerollable
+            else:
+                new_dice.pdf[roll] = (chance / prob_staying) * final_prob_staying + (chance / 1) * final_prob_rerollable
 
         return new_dice
 
