@@ -2,7 +2,6 @@ import math
 
 import numpy as np
 import copy
-import matplotlib.pyplot as plt
 import tabulate
 
 import dice
@@ -16,7 +15,7 @@ def flatten(S):
     """
 
     # Recursion stop case, an empty list is flattened
-    if S == []:
+    if not S:
         return S
 
     # If S[0] is a list, we flatten it and the rest of the list and combine the lists
@@ -67,12 +66,11 @@ def evaluate_dice_list(lambda_func, dice_list):
         return lambda_func(dice_list)
 
 
-def get_data_for_plot(dice_list, mode, name_list):
+def plot_stats__get_data_for_plot(dice_list, mode):
     """
     Generates a list that describes the data for the dice.plot method
     :param dice_list: A list of dice whose data is required
     :param mode: Which data to return, can be 'normal', 'atleast', or 'atmost'
-    :param name_list: A list describing the name of each die. Used for the plot legend
     :return: A list of tuples describing data about each dice.
     First element is x data. Second element is y data. Third element is die string
     """
@@ -81,7 +79,7 @@ def get_data_for_plot(dice_list, mode, name_list):
         die = dice_list[i]
         # Generate a descriptive text to be used in the legend
         # Consists of the die name, and its mean and std
-        die_string = "{} ({:.2f} / {:.2f})".format(name_list[i], die.mean(), die.std())
+        die_string = "{} ({:.2f} / {:.2f})".format(die.name, die.mean(), die.std())
 
         # Generate a NumPy array for x and y, depending on the mode
         if mode == 'atleast':
@@ -103,14 +101,19 @@ def get_data_for_plot(dice_list, mode, name_list):
     return data
 
 
-def update_plot_old(fig, ax, line_list, data):
+def plot_stats__update_plot(fig, ax, line_list, plot_args):
     """
     Updates a plot with new data
     :param fig: Matplotlib figure object
     :param ax: Matplotlib axes object
     :param line_list: A list of line objects describing the different graphs in the plot
-    :param data: A list of tuples, describing the new data of the plot
+    :param plot_args: A list containing:
+                                        A list of tuples, describing the new data of the plot
+                                        The x-label string
+                                        The mode ('normal', 'atmost' or 'atleast')
     """
+
+    data = plot_args[0]
 
     # Update x-data, y-data and label for each graph
     for i in range(len(line_list)):
@@ -121,19 +124,31 @@ def update_plot_old(fig, ax, line_list, data):
     # Automatically scale the x-axis and y-axis according to the new data
     ax.relim()
     ax.autoscale_view()
+    ax.set_xlabel(plot_args[1])
+    match plot_args[2]:
+        case 'normal':
+            ax.set_ylabel('Probability - Normal')
+        case 'atmost':
+            ax.set_ylabel('Probability - At Most')
+        case 'atleast':
+            ax.set_ylabel('Probability - At Least')
+        case _:
+            ax.set_ylabel('Probability')
     # Refresh the legend
     ax.legend()
     # Refresh the figure
     fig.canvas.draw_idle()
 
 
-def update_plot(fig, ax, line_list, plot_args):
+def plot_mean__update_plot(fig, ax, line_list, plot_args):
     """
     Updates a plot with new data
     :param fig: Matplotlib figure object
     :param ax: Matplotlib axes object
     :param line_list: A list of line objects describing the different graphs in the plot
-    :param data: A list of tuples, describing the new data of the plot
+    :param plot_args: A list, containing:
+                                            A list of tuples, describing the new data of the plot
+                                            The x-label string
     """
 
     data = plot_args[0]
@@ -167,7 +182,7 @@ def print_data(die, dictionary, name=None):
     Prints the statistics of a die according to a certain mode
     :param die: The die to print
     :param dictionary: The die's data to print. Can be the die's pdf, cdf etc.
-    :param name: Optional parameter. If given, sets the die's name and use it for the pring
+    :param name: Optional parameter. If given, sets the die's name and use it for the print
     """
 
     # Print parameters
@@ -179,7 +194,7 @@ def print_data(die, dictionary, name=None):
     empty_char = ' '
     # Character to place at the end of the bar, for better readability
     end_char = '-'
-    # Force tabulate to keep whitespace so empty bars (i.e. very unlikely outcomes) are printed correctly
+    # Force `tabulate` to keep whitespace so empty bars (i.e. very unlikely outcomes) are printed correctly
     tabulate.PRESERVE_WHITESPACE = True
 
     # If a name was given, update the die's name
@@ -197,7 +212,8 @@ def print_data(die, dictionary, name=None):
         num_pipes = round(max_pipes * chance)
         # The string of the progress bar
         progress_bar_string = filled_char * num_pipes + empty_char * (max_pipes - num_pipes) + end_char
-        # Add a row to the text variable, with the roll, the chance of the roll (in percentages), and the progress bar string
+        # Add a row to the text variable, with:
+        # the roll, the chance of the roll (in percentages), and the progress bar string
         text += [[roll, chance * 100, progress_bar_string]]
 
     # Print the table
@@ -272,7 +288,10 @@ def generate_all_ordered_lists_aux(die, N, reverse=False):
             # We increment the current run length by 1
             # We update the permutation counter
             if roll == comb[-1]:
-                new_combs.append((comb_chance * chance, comb + [roll], comb_count * (comb_run_length+1), comb_run_length + 1))
+                new_combs.append((comb_chance * chance,
+                                  comb + [roll],
+                                  comb_count * (comb_run_length+1),
+                                  comb_run_length + 1))
             # If the roll is not the same as the last item in the list, we check if it is sorted according to <reverse>
             # We update the probability of the combination to be
             # the product of the probabilities of the first N-1 elements, and the last element
@@ -300,9 +319,11 @@ def generate_all_ordered_lists(die, N, reverse=False):
     total_combs = math.factorial(N)
     # We want to find how many combinations are permuted to each ordered list
     # So we take to total number of permutations (<total_combs>),
-    # and divide it by the number of permutations that leave the list the same (i.e. the third element in the <aux_output> tuple)
+    # and divide it by the number of permutations that leave the list the same
+    # (i.e. the third element in the <aux_output> tuple)
 
-    # We process the tuple we got from the auxiliary method by calculating the probability of each combination (with permutation)
+    # We process the tuple we got from the auxiliary method
+    # by calculating the probability of each combination (with permutation)
     # and by removing unwanted elements in the tuples
     return [(comb_tuple[0] * total_combs / comb_tuple[2], comb_tuple[1]) for comb_tuple in aux_output]
 
@@ -324,7 +345,7 @@ def force_cube(value):
         return dice.from_const(value)
 
 
-def set_button_callback(buttons_list, button, update_func):
+def plot_mean__set_button_callback(buttons_list, button, update_func):
     def button_callback(event):
         for b in buttons_list:
             b.active = True
@@ -332,3 +353,64 @@ def set_button_callback(buttons_list, button, update_func):
         update_func()
     return button_callback
 
+
+def plot_mean__get_data_by_slider(dice_list, sliders_list, buttons_list):
+    """
+    Returns a data structure for the plotting function
+    :param dice_list: The list of dice function to evaluate
+    :param sliders_list: The list of sliders
+    :param buttons_list: The list of buttons
+    :return: A data structure containing the x and y values of all the plots, as well as legend and x-labels
+    """
+    # We first find the index of the pushed button
+    pinned = 0
+    for i in range(len(buttons_list)):
+        if not buttons_list[i].active:
+            pinned = i
+    # We get the values from all the slider
+    sliders_values = list(extract_values_from_sliders(sliders_list))
+    # We extract the variable of the pinned slider
+    pinned_slider = sliders_list[pinned]
+    # We create a list of variables that this slider can get
+    # We use these values as the x-axis of the plot
+    pinned_values = list(
+        range(pinned_slider.valmin, pinned_slider.valmax + pinned_slider.valstep, pinned_slider.valstep))
+    die_inst = []
+    return_list = []
+    # We loop over all the dice (i.e. all the lines in the plot)
+    for die in dice_list:
+        # For each one, we create a list:
+        # The first element is the values of the x-axis
+        # The second element is the values of the y-axis
+        # The third element is the name of this die
+        dice_by_slider_list = []
+        # For each value the pinned slider can get, we evaluate the die and take its average
+        for pinned_value in pinned_values:
+            # We change the list of variables, only at the index of the pinned slider
+            # We change its value according to the current one we're looping over
+            sliders_values[pinned] = pinned_value
+            # We then create an instantiation of the die by calling it with the arguments
+            die_inst = die(*sliders_values)
+            # We add the mean to the list of y-axis values
+            dice_by_slider_list.append(die_inst.mean())
+        return_list.append([pinned_values, dice_by_slider_list, die_inst.name])
+    # We also want to return the label of the current pushed button (for the x-axis)
+    # So we wrap the previous info with the label into a list
+    pinned_label = buttons_list[pinned].label
+    x_label_str = pinned_label.get_text()
+    if len(sliders_list) > 1:
+        x_label_str += '\n('
+        for i in range(len(sliders_list)):
+            if i != pinned:
+                x_label_str += buttons_list[i].label.get_text() + ' = ' + str(sliders_list[i].val) + ', '
+        x_label_str = x_label_str[:-2]
+        x_label_str += ')'
+
+    return [return_list, x_label_str]
+
+
+def plot_stats__get_x_label(basic_x_label, sliders_list):
+    x_label = basic_x_label + '\n('
+    for slider in sliders_list:
+        x_label += slider.label.get_text() + ' = ' + str(slider.val) + ', '
+    return x_label[:-2] + ')'

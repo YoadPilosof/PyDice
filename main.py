@@ -1,11 +1,6 @@
 import dice
 import time
 import dnd
-import dice_utilities
-import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider, Button
-import numpy as np
-import math
 
 
 def general_examples():
@@ -175,9 +170,11 @@ def hold_person():
 
     default_basic = d20 + WisSaveBonus >= SaveDC
     default_recursive = default_basic.count_attempts(10) - 1
-    stack = (d20 + WisSaveBonus - MindSliver - UnsettlingWords >= SaveDC).cond(0, default_recursive + 1)
-    split = (d20 + WisSaveBonus - MindSliver >= SaveDC).cond(0, (d20 + WisSaveBonus - UnsettlingWords >= SaveDC).cond(0,
-                                                                                                                      default_recursive + 1) + 1)
+    stack = (d20 + WisSaveBonus - MindSliver - UnsettlingWords >= SaveDC) \
+        .cond(0, default_recursive + 1)
+    split = (d20 + WisSaveBonus - MindSliver >= SaveDC) \
+        .cond(0, (d20 + WisSaveBonus - UnsettlingWords >= SaveDC)
+              .cond(0, default_recursive + 1) + 1)
 
     stack.print_normal("Stacked")
     split.print_normal("Split")
@@ -194,12 +191,19 @@ def attack_options():
         dnd.hit(d20, str, ac).switch(0, d8 + str + prof * 2, d8 ** 2 + str + prof * 2) << "Heavy Attack"
     str_slider = ['STR Mod', 2, 4, 6, 1]
     prof_slider = ['Proficiency Bonus', 2, 3, 6, 1]
-    ac_slider = ['Target AC', 10, 15, 25, 1]
-    dice.plot_var([light_attack, normal_attack, heavy_attack], [str_slider, prof_slider, ac_slider])
+    ac_slider = ['Target AC', 10, 15, 30, 1]
+    dice.plot_mean([light_attack, normal_attack, heavy_attack],
+                   [str_slider, prof_slider, ac_slider],
+                   title='Attack Options')
 
 
 if __name__ == '__main__':
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+    d8s = lambda N: d8 ** N << "Nd8"
+    d6s = lambda N: d6 ** N << "Nd6"
+    sld = ['Number of Dice', 1, 1, 6, 1]
+    # dice.plot_stats([d6s, d8s], sld)
+    dice.plot_stats(d8**4)
 
     # general_examples()
     # Theyandor()
