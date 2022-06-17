@@ -183,29 +183,32 @@ def hold_person():
 
 def attack_options():
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
-    light_attack = lambda str, prof, ac: \
-        dnd.hit(d20, str + prof * 2, ac).switch(0, d8, d8 ** 2) << "Light Attack"
-    normal_attack = lambda str, prof, ac: \
-        dnd.hit(d20, str + prof, ac).switch(0, d8 + str, d8 ** 2 + str) << "Normal Attack"
-    heavy_attack = lambda str, prof, ac: \
-        dnd.hit(d20, str, ac).switch(0, d8 + str + prof * 2, d8 ** 2 + str + prof * 2) << "Heavy Attack"
+    light_attack = lambda ac, str, prof, extra: \
+        dnd.hit(d20, str + prof * 2, ac).switch(0, d8 + extra, d8 ** 2 + extra) << "Light Attack"
+    normal_attack = lambda ac, str, prof, extra: \
+        dnd.hit(d20, str + prof, ac).switch(0, d8 + str + extra, d8 ** 2 + str + extra) << "Normal Attack"
+    heavy_attack = lambda ac, str, prof, extra: \
+        dnd.hit(d20, str, ac).switch(0, d8 + str + prof * 2 + extra, d8 ** 2 + str + prof * 2 + extra) << "Heavy Attack"
     str_slider = ['STR Mod', 2, 4, 6, 1]
     prof_slider = ['Proficiency Bonus', 2, 3, 6, 1]
     ac_slider = ['Target AC', 10, 15, 30, 1]
+    extra_slider = ['Extra Damage', 0, 0, 20, 1]
     dice.plot_mean([light_attack, normal_attack, heavy_attack],
-                   [str_slider, prof_slider, ac_slider],
+                   [ac_slider, str_slider, prof_slider, extra_slider],
                    title='Attack Options')
 
 
 if __name__ == '__main__':
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+    # dice.print_summary([d4 << "1d4", d6 << "1d6", d8 << "1d8", d10 << "1d10", d12 << "1d12", d20 << "1d20", d100 << "1d100"], 0)
     d8s = lambda N: d8 ** N << "Nd8"
     d6s = lambda N: d6 ** N << "Nd6"
     sld = ['Number of Dice', 1, 1, 6, 1]
+    # dice.plot_stats(d8**4)
     # dice.plot_stats([d6s, d8s], sld)
-    dice.plot_stats(d8**4)
 
     # general_examples()
     # Theyandor()
     # hold_person()
-    attack_options()
+    # attack_options()
+

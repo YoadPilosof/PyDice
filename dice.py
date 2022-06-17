@@ -1482,12 +1482,24 @@ def count(dice_list, *args):
 # ~~~~~~~~~ Plotting ~~~~~~~~~
 
 
-def print_summary(dice_list, x_list):
+def print_summary(dice_list, DesiredPrints=None):
     """
     Prints basic information on a collection of dice
     :param dice_list: A list of dice
-    :param x_list: Describes the values of the x-axis of the plot.
+    :param DesiredPrints: Specifies what information to print. Format as a list.
+                          If the list has any of these value, it will print:
+                                0 - Mean
+                                1 - Deviation
+                                2 - Maximum
+                                3 - Minimum
+                          By default, the function prints all info
     """
+
+    if DesiredPrints is None:
+        DesiredPrints = [0, 1, 2, 3]
+
+    if not isinstance(DesiredPrints, list):
+        DesiredPrints = [DesiredPrints]
 
     max_pipes = 150
     filled_char = '█'
@@ -1504,13 +1516,13 @@ def print_summary(dice_list, x_list):
 
     max_val = max(max_list)
 
-    for j in range(4):
+    for j in DesiredPrints:
         header_text = ['Output', '#', string_list[j]]
         text = [header_text]
         for i in range(len(lists_list[j])):
             num_pipes = round(max_pipes * lists_list[j][i] / max_val)
             progress_bar_string = filled_char * num_pipes + empty_char * (max_pipes - num_pipes) + end_char
-            text += [[x_list[i], '{:.2f}'.format(lists_list[j][i]), progress_bar_string]]
+            text += [[dice_list[i].name, '{:.2f}'.format(lists_list[j][i]), progress_bar_string]]
         print(tabulate(text, headers='firstrow') + '\n')
 
 
@@ -1552,21 +1564,51 @@ def plot_stats(dice_list, dynamic_vars=None, x_label='Value', title=None):
 
     # There aren't any dynamic variables - treat the dice as dice
     if not dynamic_vars:
-        data = lambda mode: [dice_utilities.plot_stats__get_data_for_plot(dice_list, mode[0]), x_label, mode[0]]
+        def data(mode):
+            plot_kwargs = {}
+            xy_data = dice_utilities.plot_stats__get_data_for_plot(dice_list, mode[0])
+            plot_kwargs['x_data'] = [xy_data_elem[0] for xy_data_elem in xy_data]
+            plot_kwargs['y_data'] = [xy_data_elem[1] for xy_data_elem in xy_data]
+            plot_kwargs['legend_labels'] = [xy_data_elem[2] for xy_data_elem in xy_data]
+            plot_kwargs['x_label'] = x_label
+            match mode[0]:
+                case 'normal':
+                    plot_kwargs['y_label'] = 'Probability - Normal'
+                case 'atmost':
+                    plot_kwargs['y_label'] = 'Probability - At Most'
+                case 'atleast':
+                    plot_kwargs['y_label'] = 'Probability - At Least'
+                case _:
+                    plot_kwargs['y_label'] = 'Probability'
+            return plot_kwargs
     # There are dynamic variables - treat the dice as functions
     else:
-        data = lambda mode: [dice_utilities.plot_stats__get_data_for_plot(
-            [die(*dice_utilities.extract_values_from_sliders(sliders_list)) for die in dice_list],
-            mode[0]),
-            dice_utilities.plot_stats__get_x_label(x_label, sliders_list),
-            mode[0]]
+        def data(mode):
+            plot_kwargs = {}
+            xy_data = dice_utilities.plot_stats__get_data_for_plot(
+                [die(*dice_utilities.extract_values_from_sliders(sliders_list)) for die in dice_list],
+                mode[0])
+            plot_kwargs['x_data'] = [xy_data_elem[0] for xy_data_elem in xy_data]
+            plot_kwargs['y_data'] = [xy_data_elem[1] for xy_data_elem in xy_data]
+            plot_kwargs['legend_labels'] = [xy_data_elem[2] for xy_data_elem in xy_data]
+            plot_kwargs['x_label'] = dice_utilities.plot_stats__get_x_label(x_label, sliders_list)
+            match mode[0]:
+                case 'normal':
+                    plot_kwargs['y_label'] = 'Probability - Normal'
+                case 'atmost':
+                    plot_kwargs['y_label'] = 'Probability - At Most'
+                case 'atleast':
+                    plot_kwargs['y_label'] = 'Probability - At Least'
+                case _:
+                    plot_kwargs['y_label'] = 'Probability'
+            return plot_kwargs
 
     # The current mode that is shown. It is a list so it can be mutable
     chosen_mode = ['normal']
     # Attach the function of updating the plot when the slider changes
     for slider in sliders_list:
         slider.on_changed(lambda event:
-                          dice_utilities.plot_stats__update_plot(d_fig, d_ax, lines_list, data(chosen_mode)))
+                          dice_utilities.update_plot(d_fig, d_ax, lines_list, data(chosen_mode)))
         # slider.on_changed(lambda event: print(chosen_mode))
 
     # Create the list of line graphs for the different dice
@@ -1595,7 +1637,7 @@ def plot_stats(dice_list, dynamic_vars=None, x_label='Value', title=None):
 
     def normal_button_click(event):
         chosen_mode[0] = 'normal'
-        dice_utilities.plot_stats__update_plot(d_fig, d_ax, lines_list, data(chosen_mode))
+        dice_utilities.update_plot(d_fig, d_ax, lines_list, data(chosen_mode))
 
     normal_button.on_clicked(normal_button_click)
 
@@ -1606,7 +1648,7 @@ def plot_stats(dice_list, dynamic_vars=None, x_label='Value', title=None):
 
     def atleast_button_click(event):
         chosen_mode[0] = 'atleast'
-        dice_utilities.plot_stats__update_plot(d_fig, d_ax, lines_list, data(chosen_mode))
+        dice_utilities.update_plot(d_fig, d_ax, lines_list, data(chosen_mode))
 
     atleast_button.on_clicked(atleast_button_click)
 
@@ -1617,7 +1659,7 @@ def plot_stats(dice_list, dynamic_vars=None, x_label='Value', title=None):
 
     def atmost_button_click(event):
         chosen_mode[0] = 'atmost'
-        dice_utilities.plot_stats__update_plot(d_fig, d_ax, lines_list, data(chosen_mode))
+        dice_utilities.update_plot(d_fig, d_ax, lines_list, data(chosen_mode))
 
     atmost_button.on_clicked(atmost_button_click)
 
@@ -1650,11 +1692,13 @@ def plot_mean(dice_list, dynamic_vars, title=None):
     # We define them now because we need them for the update function
     sliders_list = []
     buttons_list = []
+
     # Define the update function. Which updates the plot according to the sliders and buttons
-    update = lambda: dice_utilities.plot_mean__update_plot(d_fig, d_ax, lines_list,
-                                                           dice_utilities.plot_mean__get_data_by_slider(dice_list,
-                                                                                                        sliders_list,
-                                                                                                        buttons_list))
+    def update():
+        plot_kwargs = dice_utilities.plot_mean__get_data_by_slider(dice_list,
+                                                                   sliders_list,
+                                                                   buttons_list)
+        dice_utilities.update_plot(d_fig, d_ax, lines_list, plot_kwargs)
 
     # Parameters for the gui
     pgui_wbutton = 0.2  # Width of the button
@@ -1705,7 +1749,7 @@ def plot_mean(dice_list, dynamic_vars, title=None):
 
     # Create the list of line graphs for the different dice
     lines_list = []
-    for i in range(len(dynamic_vars)):
+    for i in range(len(dice_list)):
         # The plot is empty at first, but it will be populated later
         line, = d_ax.plot(np.array([]), np.array([]), 'o-', linewidth=3, label='')
         lines_list.append(line)

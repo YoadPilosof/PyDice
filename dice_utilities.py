@@ -7,6 +7,23 @@ import tabulate
 import dice
 
 
+def force_cube(value):
+    """
+    Force a variable to be a die object
+    :param value: The variable to force
+    :return: A die object
+    """
+    # Turn boolean into a number
+    if isinstance(value, bool):
+        value = value + 0
+    # If value is already a die, simply return it
+    if isinstance(value, dice.dice):
+        return value
+    # If value isn't a die, create a die with only one outcome (value)
+    else:
+        return dice.from_const(value)
+
+
 def flatten(S):
     """
     Flattens a recursive list (i.e. list of lists of lists ...)
@@ -24,157 +41,6 @@ def flatten(S):
 
     # If S[0] is not a list, we combine it to the flattened version of the rest of the list
     return S[:1] + flatten(S[1:])
-
-
-def find_percentile(cdf_dict, percentile):
-    sorted_dict_tuples = sorted(cdf_dict.items())
-    cdf_indices = [sorted_dict_tuples[i][0] for i in range(len(sorted_dict_tuples))]
-    cdf_values = [sorted_dict_tuples[i][1] for i in range(len(sorted_dict_tuples))]
-    if percentile >= cdf_values[-1]:
-        return cdf_indices[-1]
-    if percentile <= cdf_values[0]:
-        return cdf_indices[0]
-
-    high = len(cdf_values)-1
-    low = 0
-    mid = round((high+low)/2)
-    while not (cdf_values[mid] < percentile <= cdf_values[mid + 1]):
-        if cdf_values[mid] > percentile:
-            high = mid
-        else:
-            low = mid
-        mid = round((high+low)/2)
-
-    alpha = (percentile - cdf_values[mid]) / (cdf_values[mid+1] - cdf_values[mid])
-    return cdf_indices[mid] + alpha * (cdf_indices[mid+1] - cdf_indices[mid])
-
-
-def evaluate_dice_list(lambda_func, dice_list):
-    """
-    Evaluates a generic function on a list of dice
-    :param lambda_func: A function that take a die and returns some value
-    :param dice_list: A die or a list of dice
-    :return: A list describing the return values of each die in dice_list when called with lambda_func
-    """
-
-    # If dice_list is a list, call the function on every die in the list
-    if isinstance(dice_list, list):
-        return [lambda_func(die) for die in dice_list]
-
-    # If dice_list is one die, call the function on it
-    else:
-        return lambda_func(dice_list)
-
-
-def plot_stats__get_data_for_plot(dice_list, mode):
-    """
-    Generates a list that describes the data for the dice.plot method
-    :param dice_list: A list of dice whose data is required
-    :param mode: Which data to return, can be 'normal', 'atleast', or 'atmost'
-    :return: A list of tuples describing data about each dice.
-    First element is x data. Second element is y data. Third element is die string
-    """
-    data = []
-    for i in range(len(dice_list)):
-        die = dice_list[i]
-        # Generate a descriptive text to be used in the legend
-        # Consists of the die name, and its mean and std
-        die_string = "{} ({:.2f} / {:.2f})".format(die.name, die.mean(), die.std())
-
-        # Generate a NumPy array for x and y, depending on the mode
-        if mode == 'atleast':
-            die_dict = sorted(die.at_least().items())
-            x = np.array([die_dict[i][0] for i in range(len(die_dict))])
-            y = np.array([die_dict[i][1] for i in range(len(die_dict))])
-        elif mode == 'atmost':
-            die_dict = sorted(die.at_most().items())
-            x = np.array([die_dict[i][0] for i in range(len(die_dict))])
-            y = np.array([die_dict[i][1] for i in range(len(die_dict))])
-        else:
-            die_dict = sorted(die.pdf.items())
-            x = np.array([die_dict[i][0] for i in range(len(die_dict))])
-            y = np.array([die_dict[i][1] for i in range(len(die_dict))])
-
-        # Append a tuple to the list. The tuple consists of x-data, y-data, and the die_string
-        data.append((x, y, die_string))
-
-    return data
-
-
-def plot_stats__update_plot(fig, ax, line_list, plot_args):
-    """
-    Updates a plot with new data
-    :param fig: Matplotlib figure object
-    :param ax: Matplotlib axes object
-    :param line_list: A list of line objects describing the different graphs in the plot
-    :param plot_args: A list containing:
-                                        A list of tuples, describing the new data of the plot
-                                        The x-label string
-                                        The mode ('normal', 'atmost' or 'atleast')
-    """
-
-    data = plot_args[0]
-
-    # Update x-data, y-data and label for each graph
-    for i in range(len(line_list)):
-        line_list[i].set_xdata(data[i][0])
-        line_list[i].set_ydata(data[i][1])
-        line_list[i].set_label(data[i][2])
-
-    # Automatically scale the x-axis and y-axis according to the new data
-    ax.relim()
-    ax.autoscale_view()
-    ax.set_xlabel(plot_args[1])
-    match plot_args[2]:
-        case 'normal':
-            ax.set_ylabel('Probability - Normal')
-        case 'atmost':
-            ax.set_ylabel('Probability - At Most')
-        case 'atleast':
-            ax.set_ylabel('Probability - At Least')
-        case _:
-            ax.set_ylabel('Probability')
-    # Refresh the legend
-    ax.legend()
-    # Refresh the figure
-    fig.canvas.draw_idle()
-
-
-def plot_mean__update_plot(fig, ax, line_list, plot_args):
-    """
-    Updates a plot with new data
-    :param fig: Matplotlib figure object
-    :param ax: Matplotlib axes object
-    :param line_list: A list of line objects describing the different graphs in the plot
-    :param plot_args: A list, containing:
-                                            A list of tuples, describing the new data of the plot
-                                            The x-label string
-    """
-
-    data = plot_args[0]
-    # Update x-data, y-data and label for each graph
-    for i in range(len(line_list)):
-        line_list[i].set_xdata(np.array(data[i][0]))
-        line_list[i].set_ydata(np.array(data[i][1]))
-        line_list[i].set_label(data[i][2])
-
-    # Automatically scale the x-axis and y-axis according to the new data
-    ax.relim()
-    ax.autoscale_view()
-    ax.set_xlabel(plot_args[1])
-    # Refresh the legend
-    ax.legend()
-    # Refresh the figure
-    fig.canvas.draw_idle()
-
-
-def extract_values_from_sliders(sliders_list):
-    """
-    Transforms a list of slider objects to a tuple of their values
-    :param sliders_list: A list of slider objects
-    :return: A tuple where each element is the value of the corresponding slider
-    """
-    return tuple([slider.val for slider in sliders_list])
 
 
 def print_data(die, dictionary, name=None):
@@ -220,6 +86,209 @@ def print_data(die, dictionary, name=None):
     # Use the first row as a header row
     # Force floating point numbers to use 2 decimal places
     print(tabulate.tabulate(text, headers='firstrow', floatfmt='.2f'))
+
+
+def find_percentile(cdf_dict, percentile):
+    sorted_dict_tuples = sorted(cdf_dict.items())
+    cdf_indices = [sorted_dict_tuples[i][0] for i in range(len(sorted_dict_tuples))]
+    cdf_values = [sorted_dict_tuples[i][1] for i in range(len(sorted_dict_tuples))]
+    if percentile >= cdf_values[-1]:
+        return cdf_indices[-1]
+    if percentile <= cdf_values[0]:
+        return cdf_indices[0]
+
+    high = len(cdf_values) - 1
+    low = 0
+    mid = round((high + low) / 2)
+    while not (cdf_values[mid] < percentile <= cdf_values[mid + 1]):
+        if cdf_values[mid] > percentile:
+            high = mid
+        else:
+            low = mid
+        mid = round((high + low) / 2)
+
+    alpha = (percentile - cdf_values[mid]) / (cdf_values[mid + 1] - cdf_values[mid])
+    return cdf_indices[mid] + alpha * (cdf_indices[mid + 1] - cdf_indices[mid])
+
+
+def evaluate_dice_list(lambda_func, dice_list):
+    """
+    Evaluates a generic function on a list of dice
+    :param lambda_func: A function that take a die and returns some value
+    :param dice_list: A die or a list of dice
+    :return: A list describing the return values of each die in dice_list when called with lambda_func
+    """
+
+    # If dice_list is a list, call the function on every die in the list
+    if isinstance(dice_list, list):
+        return [lambda_func(die) for die in dice_list]
+
+    # If dice_list is one die, call the function on it
+    else:
+        return lambda_func(dice_list)
+
+
+def extract_values_from_sliders(sliders_list):
+    """
+    Transforms a list of slider objects to a tuple of their values
+    :param sliders_list: A list of slider objects
+    :return: A tuple where each element is the value of the corresponding slider
+    """
+    return tuple([slider.val for slider in sliders_list])
+
+
+def plot_stats__get_data_for_plot(dice_list, mode):
+    """
+    Generates a list that describes the data for the dice.plot method
+    :param dice_list: A list of dice whose data is required
+    :param mode: Which data to return, can be 'normal', 'atleast', or 'atmost'
+    :return: A list of tuples describing data about each dice.
+    First element is x data. Second element is y data. Third element is die string
+    """
+    data = []
+    for i in range(len(dice_list)):
+        die = dice_list[i]
+        # Generate a descriptive text to be used in the legend
+        # Consists of the die name, and its mean and std
+        die_string = "{} ({:.2f} / {:.2f})".format(die.name, die.mean(), die.std())
+
+        # Generate a NumPy array for x and y, depending on the mode
+        if mode == 'atleast':
+            die_dict = sorted(die.at_least().items())
+            x = np.array([die_dict[i][0] for i in range(len(die_dict))])
+            y = np.array([die_dict[i][1] for i in range(len(die_dict))])
+        elif mode == 'atmost':
+            die_dict = sorted(die.at_most().items())
+            x = np.array([die_dict[i][0] for i in range(len(die_dict))])
+            y = np.array([die_dict[i][1] for i in range(len(die_dict))])
+        else:
+            die_dict = sorted(die.pdf.items())
+            x = np.array([die_dict[i][0] for i in range(len(die_dict))])
+            y = np.array([die_dict[i][1] for i in range(len(die_dict))])
+
+        # Append a tuple to the list. The tuple consists of x-data, y-data, and the die_string
+        data.append((x, y, die_string))
+
+    return data
+
+
+def plot_stats__get_x_label(basic_x_label, sliders_list):
+    x_label = basic_x_label + '\n('
+    for slider in sliders_list:
+        x_label += slider.label.get_text() + ' = ' + str(slider.val) + ', '
+    return x_label[:-2] + ')'
+
+
+def plot_mean__get_data_by_slider(dice_list, sliders_list, buttons_list):
+    """
+    Returns a data structure for the plotting function
+    :param dice_list: The list of dice function to evaluate
+    :param sliders_list: The list of sliders
+    :param buttons_list: The list of buttons
+    :return: A data structure containing the x and y values of all the plots, as well as legend and x-labels
+    """
+
+    plot_kwargs = {}
+
+    # We first find the index of the pushed button
+    pinned = 0
+    for i in range(len(buttons_list)):
+        if not buttons_list[i].active:
+            pinned = i
+    # We get the values from all the slider
+    sliders_values = list(extract_values_from_sliders(sliders_list))
+    # We extract the variable of the pinned slider
+    pinned_slider = sliders_list[pinned]
+    # We create a list of variables that this slider can get
+    # We use these values as the x-axis of the plot
+    pinned_values = list(
+        range(pinned_slider.valmin, pinned_slider.valmax + pinned_slider.valstep, pinned_slider.valstep))
+    die_inst = []
+    plot_kwargs['x_data'] = []
+    plot_kwargs['y_data'] = []
+    plot_kwargs['legend_labels'] = []
+    # We loop over all the dice (i.e. all the lines in the plot)
+    for die in dice_list:
+        # For each one, we create a list:
+        # The first element is the values of the x-axis
+        # The second element is the values of the y-axis
+        # The third element is the name of this die
+        dice_by_slider_list = []
+        # For each value the pinned slider can get, we evaluate the die and take its average
+        for pinned_value in pinned_values:
+            # We change the list of variables, only at the index of the pinned slider
+            # We change its value according to the current one we're looping over
+            sliders_values[pinned] = pinned_value
+            # We then create an instantiation of the die by calling it with the arguments
+            die_inst = die(*sliders_values)
+            # We add the mean to the list of y-axis values
+            dice_by_slider_list.append(die_inst.mean())
+        plot_kwargs['x_data'].append(pinned_values)
+        plot_kwargs['y_data'].append(dice_by_slider_list)
+        plot_kwargs['legend_labels'].append(die_inst.name)
+
+    # We also want to return the label of the current pushed button (for the x-axis)
+    pinned_label = buttons_list[pinned].label
+    x_label_str = pinned_label.get_text()
+    if len(sliders_list) > 1:
+        x_label_str += '\n('
+        for i in range(len(sliders_list)):
+            if i != pinned:
+                x_label_str += buttons_list[i].label.get_text() + ' = ' + str(sliders_list[i].val) + ', '
+        x_label_str = x_label_str[:-2]
+        x_label_str += ')'
+
+    plot_kwargs['x_label'] = x_label_str
+    plot_kwargs['y_label'] = 'Mean'
+    return plot_kwargs
+
+
+def plot_mean__set_button_callback(buttons_list, button, update_func):
+    def button_callback(event):
+        for b in buttons_list:
+            b.active = True
+        button.active = False
+        update_func()
+
+    return button_callback
+
+
+def update_plot(fig, ax, line_list, plot_kwargs):
+    """
+    Updates a plot with new data
+    :param fig: Matplotlib figure object
+    :param ax: Matplotlib axes object
+    :param line_list: A list of line objects describing the different graphs in the plot
+    :param plot_kwargs: A dictionary with the following arguments:
+                                x_data: A list of lists that contain the new x-data
+                                y_data: A list of lists that contain the new y-data
+                                legend_labels: A list of strings describing the label of the legend of each line
+                                x_label: The new x-label text
+                                y_label: The new y-label text
+                                title: New plot title
+    """
+    # Update x-data, y-data and label for each graph
+    for i in range(len(line_list)):
+        if 'x_data' in plot_kwargs.keys():
+            line_list[i].set_xdata(plot_kwargs['x_data'][i])
+        if 'y_data' in plot_kwargs.keys():
+            line_list[i].set_ydata(plot_kwargs['y_data'][i])
+        if 'legend_labels' in plot_kwargs.keys():
+            line_list[i].set_label(plot_kwargs['legend_labels'][i])
+
+    # Automatically scale the x-axis and y-axis according to the new data
+    ax.relim()
+    ax.autoscale_view()
+    if 'x_label' in plot_kwargs.keys():
+        ax.set_xlabel(plot_kwargs['x_label'])
+    if 'y_label' in plot_kwargs.keys():
+        ax.set_ylabel(plot_kwargs['y_label'])
+    if 'title' in plot_kwargs.keys():
+        ax.set_title(plot_kwargs['title'])
+    # Refresh the legend
+    ax.legend()
+    # Refresh the figure
+    fig.canvas.draw_idle()
 
 
 def generate_all_dice_combs(dice_list):
@@ -290,7 +359,7 @@ def generate_all_ordered_lists_aux(die, N, reverse=False):
             if roll == comb[-1]:
                 new_combs.append((comb_chance * chance,
                                   comb + [roll],
-                                  comb_count * (comb_run_length+1),
+                                  comb_count * (comb_run_length + 1),
                                   comb_run_length + 1))
             # If the roll is not the same as the last item in the list, we check if it is sorted according to <reverse>
             # We update the probability of the combination to be
@@ -326,91 +395,3 @@ def generate_all_ordered_lists(die, N, reverse=False):
     # by calculating the probability of each combination (with permutation)
     # and by removing unwanted elements in the tuples
     return [(comb_tuple[0] * total_combs / comb_tuple[2], comb_tuple[1]) for comb_tuple in aux_output]
-
-
-def force_cube(value):
-    """
-    Force a variable to be a die object
-    :param value: The variable to force
-    :return: A die object
-    """
-    # Turn boolean into a number
-    if isinstance(value, bool):
-        value = value + 0
-    # If value is already a die, simply return it
-    if isinstance(value, dice.dice):
-        return value
-    # If value isn't a die, create a die with only one outcome (value)
-    else:
-        return dice.from_const(value)
-
-
-def plot_mean__set_button_callback(buttons_list, button, update_func):
-    def button_callback(event):
-        for b in buttons_list:
-            b.active = True
-        button.active = False
-        update_func()
-    return button_callback
-
-
-def plot_mean__get_data_by_slider(dice_list, sliders_list, buttons_list):
-    """
-    Returns a data structure for the plotting function
-    :param dice_list: The list of dice function to evaluate
-    :param sliders_list: The list of sliders
-    :param buttons_list: The list of buttons
-    :return: A data structure containing the x and y values of all the plots, as well as legend and x-labels
-    """
-    # We first find the index of the pushed button
-    pinned = 0
-    for i in range(len(buttons_list)):
-        if not buttons_list[i].active:
-            pinned = i
-    # We get the values from all the slider
-    sliders_values = list(extract_values_from_sliders(sliders_list))
-    # We extract the variable of the pinned slider
-    pinned_slider = sliders_list[pinned]
-    # We create a list of variables that this slider can get
-    # We use these values as the x-axis of the plot
-    pinned_values = list(
-        range(pinned_slider.valmin, pinned_slider.valmax + pinned_slider.valstep, pinned_slider.valstep))
-    die_inst = []
-    return_list = []
-    # We loop over all the dice (i.e. all the lines in the plot)
-    for die in dice_list:
-        # For each one, we create a list:
-        # The first element is the values of the x-axis
-        # The second element is the values of the y-axis
-        # The third element is the name of this die
-        dice_by_slider_list = []
-        # For each value the pinned slider can get, we evaluate the die and take its average
-        for pinned_value in pinned_values:
-            # We change the list of variables, only at the index of the pinned slider
-            # We change its value according to the current one we're looping over
-            sliders_values[pinned] = pinned_value
-            # We then create an instantiation of the die by calling it with the arguments
-            die_inst = die(*sliders_values)
-            # We add the mean to the list of y-axis values
-            dice_by_slider_list.append(die_inst.mean())
-        return_list.append([pinned_values, dice_by_slider_list, die_inst.name])
-    # We also want to return the label of the current pushed button (for the x-axis)
-    # So we wrap the previous info with the label into a list
-    pinned_label = buttons_list[pinned].label
-    x_label_str = pinned_label.get_text()
-    if len(sliders_list) > 1:
-        x_label_str += '\n('
-        for i in range(len(sliders_list)):
-            if i != pinned:
-                x_label_str += buttons_list[i].label.get_text() + ' = ' + str(sliders_list[i].val) + ', '
-        x_label_str = x_label_str[:-2]
-        x_label_str += ')'
-
-    return [return_list, x_label_str]
-
-
-def plot_stats__get_x_label(basic_x_label, sliders_list):
-    x_label = basic_x_label + '\n('
-    for slider in sliders_list:
-        x_label += slider.label.get_text() + ' = ' + str(slider.val) + ', '
-    return x_label[:-2] + ')'
