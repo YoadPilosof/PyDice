@@ -1,4 +1,5 @@
 import dice
+import math
 
 
 def hit(roll, hit_bonus, ac, crit_thresold=20):
@@ -11,10 +12,10 @@ def hit(roll, hit_bonus, ac, crit_thresold=20):
     :return: A die with the values 0 (miss), 1 (hit) or 2 (crit)
     """
 
-    def n_hit(n_roll, n_hit_bonus, n_ac, n_crit_thresold):
+    def n_hit(n_roll, n_hit_bonus, n_ac, n_crit_threshold):
         if n_roll == 1:
             return 0
-        if n_roll >= n_crit_thresold:
+        if n_roll >= n_crit_threshold:
             return 2
         if n_roll + n_hit_bonus >= n_ac:
             return 1
@@ -33,10 +34,25 @@ def save(damage, saving_throw, DC, evasion=False):
     :return: Die describing the damage taken
     """
 
-    def n_save(n_damage, n_saving_throw, n_DC, n_evasion):
-        if n_evasion:
-            return ((n_saving_throw >= n_DC).cond(0.5, 1) * n_damage).floor()
-        else:
-            return ((n_saving_throw >= n_DC).cond(0, 0.5) * n_damage).floor()
+    if not evasion:
+        return ((saving_throw >= DC).cond(0.5, 1) * damage).floor()
+    else:
+        return ((saving_throw >= DC).cond(0, 0.5) * damage).floor()
 
-    return dice.func(n_save, damage, saving_throw, DC, evasion)
+
+def get_pb(level):
+    """
+    Calculated a character's proficiency bonus based on their level
+    :param level: The character's level
+    :return: The character's proficiency bonus
+    """
+    return math.ceil(level / 4) + 1
+
+
+def get_tier(level):
+    """
+    Calculates a character's tier based on their level
+    :param level: The character's level
+    :return: The character's tier
+    """
+    return 1 + (level >= 5) + (level >= 11) + (level >= 17)

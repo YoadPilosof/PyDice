@@ -1,6 +1,7 @@
 import dice
 import time
 import dnd
+import math
 
 
 def general_examples():
@@ -198,17 +199,74 @@ def attack_options():
                    title='Attack Options')
 
 
+def class_comparison():
+    def warlock(level, ac):
+        prof = dnd.get_pb(level)
+        mod = 3 + (level >= 4) + (level >= 8)
+        num_attacks = 1 + (level >= 5) + (level >= 11) + (level >= 17)
+        agonizing = mod if level >= 2 else 0
+        damage_per_attack = dnd.hit(d20, mod + prof, ac).switch(0,
+                                                                d10 + d6 + agonizing,
+                                                                d10 ** 2 + d6 ** 2 + agonizing)
+        DPR = damage_per_attack ** num_attacks
+        return DPR << "Warlock (Hex + Agonizing Blast)"
+
+    def fighter(level, ac):
+        prof = dnd.get_pb(level)
+        mod = 3 + (level >= 4) + (level >= 6)
+        num_attacks = 1 + (level >= 5) + (level >= 11) + (level >= 20)
+        crit_threshold = 20 - (level >= 3) - (level >= 15)
+        damage_per_attack = dnd.hit(d20, mod + prof, ac, crit_threshold).switch(0,
+                                                                                (d8 + 2 + mod),
+                                                                                (d8 ** 2 + 2 + mod))
+        DPR = damage_per_attack ** num_attacks
+        return DPR << "Fighter (Champion, Longsword + Dueling)"
+
+    def rogue(level, ac):
+        prof = dnd.get_pb(level)
+        mod = 3 + (level >= 4) + (level >= 8)
+        sneak_attack = d6 * math.ceil(level / 2)
+        base_roll = d20.adv() if level >= 2 else d20
+        DPR = dnd.hit(base_roll, mod + prof, ac).switch(0,
+                                                        d6 + sneak_attack + mod,
+                                                        d6 ** 2 + sneak_attack ** 2 + mod)
+        return DPR << "Rogue (Advantage + Sneak Attack)"
+
+    def monk(level, ac):
+        prof = dnd.get_pb(level)
+        mod = 3 + (level >= 4) + (level >= 8)
+        MartialArtsDieSize = 4 + (level >= 5) * 2 + (level >= 11) * 2 + (level >= 17) * 2
+        MartialArtsDie = dice.d(MartialArtsDieSize)
+        WeaponDie = MartialArtsDie if level >= 5 else d6
+        BonusActionAttacks = 2 if level >= 2 else 1
+        number_attacks = 2 if level >= 5 else 1
+        damage_per_action_attack = dnd.hit(d20, mod + prof, ac).switch(0,
+                                                                       WeaponDie + mod,
+                                                                       WeaponDie ** 2 + mod)
+        damage_per_bonus_attack = dnd.hit(d20, mod + prof, ac).switch(0,
+                                                                      MartialArtsDie + mod,
+                                                                      MartialArtsDie ** 2 + mod)
+        DPR = damage_per_action_attack ** number_attacks + damage_per_bonus_attack ** BonusActionAttacks
+        return DPR << "Monk (Unlimited Ki)"
+
+    level_slider = ['Level', 1, 1, 20]
+    ac_slider = ['AC', 10, 15, 25]
+
+    dice.plot_mean([warlock, fighter, rogue, monk], [level_slider, ac_slider], title="Damage Per Round Comparison")
+
+
 if __name__ == '__main__':
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
     # dice.print_summary([d4 << "1d4", d6 << "1d6", d8 << "1d8", d10 << "1d10", d12 << "1d12", d20 << "1d20", d100 << "1d100"], 0)
+    d10s = lambda N: d10 ** N << "Nd10"
     d8s = lambda N: d8 ** N << "Nd8"
     d6s = lambda N: d6 ** N << "Nd6"
-    sld = ['Number of Dice', 1, 1, 6, 1]
-    # dice.plot_stats(d8**4)
-    # dice.plot_stats([d6s, d8s], sld)
+    sld = ['Number of Dice', 1, 1, 6]
+    dice.plot_stats([d6**4, d8**4, d10**4])
+    dice.plot_stats([d6s, d8s], sld)
 
     # general_examples()
     # Theyandor()
     # hold_person()
     # attack_options()
-
+    class_comparison()

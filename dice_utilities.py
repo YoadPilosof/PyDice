@@ -240,6 +240,8 @@ def plot_mean__get_data_by_slider(dice_list, sliders_list, buttons_list):
 
     plot_kwargs['x_label'] = x_label_str
     plot_kwargs['y_label'] = 'Mean'
+
+    plot_kwargs['x_ticks'] = plot_kwargs['x_data'][0]
     return plot_kwargs
 
 
@@ -276,6 +278,49 @@ def update_plot(fig, ax, line_list, plot_kwargs):
         if 'legend_labels' in plot_kwargs.keys():
             line_list[i].set_label(plot_kwargs['legend_labels'][i])
 
+    # Remember for each line if it was visible or not. And reset visibility for the legend
+    line_vis = []
+    for line in line_list:
+        line_vis.append(line.get_visible())
+        line.set_visible(True)
+
+    # Refresh the legend
+    legend_obj = ax.legend()
+
+    # Set visibility to the old value
+    for line, vis in zip(line_list, line_vis):
+        line.set_visible(vis)
+
+    # Create a dictionary linking the line object in the plot, and the line object in the legend
+    lines = {}
+    for legend_line, original_line, visible in zip(legend_obj.get_lines(), line_list, line_vis):
+        # Set the click tolerance
+        legend_line.set_picker(5)
+        legend_line.set_alpha(1.0 if visible else 0.2)
+        lines[legend_line] = original_line
+
+    # Define the callback method when clicking on a legend item
+    def on_pick(event):
+        legend_line = event.artist
+        original_line = lines[legend_line]
+        # Invert the plot visibility
+        vis = not original_line.get_visible()
+        original_line.set_visible(vis)
+
+        # Set the line's alpha in the legend depending on if it is visible or not
+        if vis:
+            legend_line.set_alpha(1.0)
+        else:
+            legend_line.set_alpha(0.2)
+        # Redraw the plot after clicking
+        fig.canvas.draw()
+
+    # Disconnect all 'pick_event' events from the canvas.
+    # These are the callbacks that were attacked in the previous calls to update_plot
+    found = fig.canvas.callbacks.callbacks.pop('pick_event', 0)
+    # Connect the current event
+    cid = fig.canvas.mpl_connect('pick_event', on_pick)
+
     # Automatically scale the x-axis and y-axis according to the new data
     ax.relim()
     ax.autoscale_view()
@@ -285,8 +330,11 @@ def update_plot(fig, ax, line_list, plot_kwargs):
         ax.set_ylabel(plot_kwargs['y_label'])
     if 'title' in plot_kwargs.keys():
         ax.set_title(plot_kwargs['title'])
-    # Refresh the legend
-    ax.legend()
+    # Set the x-ticks
+    if 'x_ticks' in plot_kwargs.keys():
+        ax.set_xticks(plot_kwargs['x_ticks'])
+    if 'y_ticks' in plot_kwargs.keys():
+        ax.set_yticks(plot_kwargs['y_ticks'])
     # Refresh the figure
     fig.canvas.draw_idle()
 

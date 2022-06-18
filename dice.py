@@ -979,7 +979,7 @@ class dice:
                 return self.reroll_func(lambda x: x == val, max_depth=max_depth)
             case '!=':
                 return self.reroll_func(lambda x: x != val, max_depth=max_depth)
-            # If the sign is not one of those 6, raise an error
+            # If the sign is not one of those six, raise an error
             case _:
                 raise
 
@@ -1352,6 +1352,9 @@ def chain_compare(*args):
                 return dice_utilities.force_cube(args[0]) == dice_utilities.force_cube(args[2])
             case '!=':
                 return dice_utilities.force_cube(args[0]) != dice_utilities.force_cube(args[2])
+            # If the sign is not one of these six, raise an error
+            case _:
+                raise
 
     # Create a dictionary that hold only the cases where the comparison is True
     # The key is the value of the last die
@@ -1378,7 +1381,7 @@ def chain_compare(*args):
                     result = roll1 == roll2
                 case '!=':
                     result = roll1 != roll2
-                # If the sign is not one of these 6, raise an error
+                # If the sign is not one of these six, raise an error
                 case _:
                     raise
 
@@ -1420,7 +1423,7 @@ def chain_compare(*args):
                         result = dict_tuple == roll
                     case '!=':
                         result = dict_tuple != roll
-                    # If the sign is not one of these 6, raise an error
+                    # If the sign is not one of these six, raise an error
                     case _:
                         raise
 
@@ -1498,6 +1501,21 @@ def print_summary(dice_list, DesiredPrints=None):
 
 
 def plot_stats(dice_list, dynamic_vars=None, x_label='Value', title=None):
+    """
+    Plot basic stats (normal [pdf], atmost [cdf] and atleast [1+pdf-cdf]) of a list of dice
+    :param dice_list: A list of dice to plot the info of
+    :param dynamic_vars: A list of lists. Each list describes a slider in the plot, in the following format:
+                                            - Slider name
+                                            - Slider minimum value
+                                            - Slider initial value
+                                            - Slider maximum value
+                                            - Slider step size (default 1)
+                        If dynamic variables are given, the dice list needs to be a list of functions.
+                        These functions take a number of arguments equal to the number of sliders (in the appropriate order)
+                        And they need to return a dice object
+    :param x_label: Optional parameter, the x-label of the plot
+    :param title: Optional parameter, the title of the plot
+    """
     d_fig, d_ax = plt.subplots()
     if dynamic_vars is not None:
         i_fig = plt.figure()
@@ -1506,6 +1524,11 @@ def plot_stats(dice_list, dynamic_vars=None, x_label='Value', title=None):
         dynamic_vars = []
     elif not isinstance(dynamic_vars[0], list):
         dynamic_vars = [dynamic_vars]
+
+    # Set default step size
+    for dynamic_var in dynamic_vars:
+        if len(dynamic_var) == 4:
+            dynamic_var.append(1)
 
     # If only one die was given, and not as a list, we turn it into a list of length 1
     if not isinstance(dice_list, list):
@@ -1642,12 +1665,26 @@ def plot_stats(dice_list, dynamic_vars=None, x_label='Value', title=None):
     # d_ax.set_ylabel('Probability')
     if title is not None:
         d_ax.set_title(title)
-    d_ax.legend()
+    # d_ax.legend()
     d_ax.grid(alpha=0.3)
     plt.show()
 
 
 def plot_mean(dice_list, dynamic_vars, title=None):
+    """
+    Plot the mean of a list of dice
+    :param dice_list: A list of dice to plot the info of
+    :param dynamic_vars: A list of lists. Each list describes a slider in the plot, in the following format:
+                                            - Slider name
+                                            - Slider minimum value
+                                            - Slider initial value
+                                            - Slider maximum value
+                                            - Slider step size (default 1)
+                        If dynamic variables are given, the dice list needs to be a list of functions.
+                        These functions take a number of arguments equal to the number of sliders (in the appropriate order)
+                        And they need to return a dice object
+    :param title: Optional parameter, the title of the plot
+    """
     d_fig, d_ax = plt.subplots()
     i_fig = plt.figure()
 
@@ -1658,6 +1695,11 @@ def plot_mean(dice_list, dynamic_vars, title=None):
     # If only one dynamic var is given, and it is not wrapped correctly, wrap it in another list
     if not isinstance(dynamic_vars[0], list):
         dynamic_vars = [dynamic_vars]
+
+    # Set default step size
+    for dynamic_var in dynamic_vars:
+        if len(dynamic_var) == 4:
+            dynamic_var.append(1)
 
     # Define the lists that contain all the buttons and sliders
     # We define them now because we need them for the update function
@@ -1724,6 +1766,7 @@ def plot_mean(dice_list, dynamic_vars, title=None):
         # The plot is empty at first, but it will be populated later
         line, = d_ax.plot(np.array([]), np.array([]), 'o-', linewidth=3, label='')
         lines_list.append(line)
+
 
     update()
     # General plot details
