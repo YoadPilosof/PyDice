@@ -27,26 +27,26 @@ class dice:
         self.name = other
         return self
 
-    def print_normal(self):
+    def print_normal(self, precision=2):
         """
         Prints general info about the dice (mean and std), and prints a graph-like plot of the pdf of the dice
         """
 
-        dice_utilities.print_data(self, self.pdf, self.name)
+        dice_utilities.print_data(self, self.pdf, self.name, precision)
 
-    def print_at_least(self):
+    def print_at_least(self, precision=2):
         """
         Prints general info about the dice (mean and std), and prints a graph-like plot about the chance to get at least a value
         """
 
-        dice_utilities.print_data(self, self.at_least(), self.name)
+        dice_utilities.print_data(self, self.at_least(), self.name, precision)
 
-    def print_at_most(self):
+    def print_at_most(self, precision=2):
         """
         Prints general info about the dice (mean and std), and prints a graph-like plot about the chance to get at most a value
         """
 
-        dice_utilities.print_data(self, self.at_most(), self.name)
+        dice_utilities.print_data(self, self.at_most(), self.name, precision)
 
     def at_least(self):
         """
@@ -291,6 +291,8 @@ class dice:
         :param power: How many dice to roll
         :return: A new die, with statistics according to the sum of the die
         """
+        if power == 0:
+            return zero()
         if power == 1:
             return copy.deepcopy(self)
         else:

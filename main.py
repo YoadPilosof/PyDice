@@ -199,8 +199,27 @@ def attack_options():
                    title='Attack Options')
 
 
+def attack_options_rogue():
+    d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+    light_attack = lambda ac, str, prof, sneak: \
+        dnd.hit(d20.adv(), str + prof * 2, ac).switch(0, d8 + str + d4 * sneak,
+                                                      d8 * 2 + str + d4 * sneak * 2) << "Light Attack"
+    normal_attack = lambda ac, str, prof, sneak: \
+        dnd.hit(d20.adv(), str + prof, ac).switch(0, d8 + str + d6 * sneak,
+                                                  d8 * 2 + str + d6 * sneak * 2) << "Normal Attack"
+    heavy_attack = lambda ac, str, prof, sneak: \
+        dnd.hit(d20.adv(), str, ac).switch(0, d8 + str + d8 * sneak, d8 * 2 + str + d8 * sneak * 2) << "Heavy Attack"
+    str_slider = ['STR Mod', 2, 4, 6]
+    prof_slider = ['Proficiency Bonus', 2, 3, 6]
+    ac_slider = ['Target AC', 10, 15, 30]
+    sneak_attack_slider = ['Sneak Attack Dice', 1, 1, 10]
+    dice.plot_mean([light_attack, normal_attack, heavy_attack],
+                   [ac_slider, str_slider, prof_slider, sneak_attack_slider],
+                   title='Attack Options')
+
+
 def class_comparison():
-    def warlock(level, ac):
+    def warlock(level, ac, turns):
         prof = dnd.get_pb(level)
         mod = 3 + (level >= 4) + (level >= 8)
         num_attacks = 1 + (level >= 5) + (level >= 11) + (level >= 17)
@@ -208,21 +227,23 @@ def class_comparison():
         damage_per_attack = dnd.hit(d20, mod + prof, ac).switch(0,
                                                                 d10 + d6 + agonizing,
                                                                 d10 ** 2 + d6 ** 2 + agonizing)
-        DPR = damage_per_attack ** num_attacks
+        DPR = damage_per_attack * num_attacks
         return DPR << "Warlock (Hex + Agonizing Blast)"
 
-    def fighter(level, ac):
+    def fighter(level, ac, turns):
         prof = dnd.get_pb(level)
         mod = 3 + (level >= 4) + (level >= 6)
         num_attacks = 1 + (level >= 5) + (level >= 11) + (level >= 20)
         crit_threshold = 20 - (level >= 3) - (level >= 15)
+        action_surges = (level >= 2) + (level >= 17)
         damage_per_attack = dnd.hit(d20, mod + prof, ac, crit_threshold).switch(0,
                                                                                 (d8 + 2 + mod),
                                                                                 (d8 ** 2 + 2 + mod))
         DPR = damage_per_attack ** num_attacks
-        return DPR << "Fighter (Champion, Longsword + Dueling)"
+        total_damage = DPR * (turns + min(turns, action_surges))
+        return total_damage / turns << "Fighter (Champion, Longsword + Dueling)"
 
-    def rogue(level, ac):
+    def rogue(level, ac, turns):
         prof = dnd.get_pb(level)
         mod = 3 + (level >= 4) + (level >= 8)
         sneak_attack = d6 * math.ceil(level / 2)
@@ -232,13 +253,13 @@ def class_comparison():
                                                         d6 ** 2 + sneak_attack ** 2 + mod)
         return DPR << "Rogue (Advantage + Sneak Attack)"
 
-    def monk(level, ac):
+    def monk(level, ac, turns):
         prof = dnd.get_pb(level)
         mod = 3 + (level >= 4) + (level >= 8)
-        MartialArtsDieSize = 4 + (level >= 5) * 2 + (level >= 11) * 2 + (level >= 17) * 2
+        MartialArtsDieSize = 2 + 2 * dnd.get_tier(level)
         MartialArtsDie = dice.d(MartialArtsDieSize)
         WeaponDie = MartialArtsDie if level >= 5 else d6
-        BonusActionAttacks = 2 if level >= 2 else 1
+        ki = level if level >= 2 else 0
         number_attacks = 2 if level >= 5 else 1
         damage_per_action_attack = dnd.hit(d20, mod + prof, ac).switch(0,
                                                                        WeaponDie + mod,
@@ -246,13 +267,61 @@ def class_comparison():
         damage_per_bonus_attack = dnd.hit(d20, mod + prof, ac).switch(0,
                                                                       MartialArtsDie + mod,
                                                                       MartialArtsDie ** 2 + mod)
-        DPR = damage_per_action_attack ** number_attacks + damage_per_bonus_attack ** BonusActionAttacks
-        return DPR << "Monk (Unlimited Ki)"
+        total_damage = damage_per_action_attack * (number_attacks * turns) + \
+                       damage_per_bonus_attack * turns + \
+                       damage_per_bonus_attack * min(ki, turns)
+        return total_damage / turns << "Monk (Only flurry of blows)"
 
     level_slider = ['Level', 1, 1, 20]
     ac_slider = ['AC', 10, 15, 25]
+    turns_slider = ['Number of Turns', 1, 1, 10]
 
-    dice.plot_mean([warlock, fighter, rogue, monk], [level_slider, ac_slider], title="Damage Per Round Comparison")
+    dice.plot_mean([warlock, fighter, rogue, monk], [level_slider, ac_slider, turns_slider],
+                   title="Damage Per Round Comparison")
+
+
+def acquire_funds(pc = "ori", prof=2, type = "safe"):
+    d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+
+    # Ori
+    if pc == "ori":
+        cha = +0
+        int = -1
+        wis = -1
+        insight = wis + 2 * prof
+        persuasion = cha + 2 * prof
+        history = int + 2 * prof
+        deception = cha + 2 * prof
+        intimidation = cha + 2 * prof
+
+    # Yoad
+    if pc == "yoad":
+        cha = +5
+        int = +1
+        wis = +0
+        insight = wis + prof
+        persuasion = cha + 2 * prof
+        history = int + 2 * prof
+        deception = cha + 2 * prof
+        intimidation = cha + math.floor(prof / 2)
+
+    successes_play_it_safe = (d20 + insight > (d10 ** 2)) + \
+                             (d20 + persuasion > (d10 ** 2)) + \
+                             (d20 + history > (d10 ** 2))
+
+    successes_take_a_risk  = (d20 + insight > (d10 ** 2 + 5)) + \
+                             (d20 + deception > (d10 ** 2 + 5)) + \
+                             (d20 + intimidation > (d10 ** 2 + 5))
+
+    play_it_safe = successes_play_it_safe.switch(+0.5, +1, +1.25, +1.5) - 1 << "Play it Safe"
+    take_a_risk = successes_take_a_risk.switch(-1, +0.5, +1.5, +2) - 1 << "Take a Risk"
+
+    # play_it_safe.print_normal()
+    # take_a_risk.print_normal()
+    if type == "safe":
+        return play_it_safe
+    if type == "risk":
+        return take_a_risk
 
 
 if __name__ == '__main__':
@@ -262,11 +331,30 @@ if __name__ == '__main__':
     d8s = lambda N: d8 ** N << "Nd8"
     d6s = lambda N: d6 ** N << "Nd6"
     sld = ['Number of Dice', 1, 1, 6]
-    dice.plot_stats([d6**4, d8**4, d10**4])
-    dice.plot_stats([d6s, d8s], sld)
+    # dice.plot_stats([d6 ** 4 << "4d6", d8 ** 4 << "4d8", d10 ** 4 << "4d10"])
+    # dice.plot_stats([d6s, d8s, d10s], sld)
 
     # general_examples()
     # Theyandor()
     # hold_person()
-    # attack_options()
-    class_comparison()
+    # attack_options_rogue()
+    # class_comparison()
+    # acquire_funds(2)
+
+    def yoad_acquire(pb, gamble_type):
+        if gamble_type == 0:
+            return acquire_funds("yoad", pb, "safe") << "Yoad"
+        if gamble_type == 1:
+            return acquire_funds("yoad", pb, "risk") << "Yoad"
+
+    def ori_acquire(pb, gamble_type):
+        if gamble_type == 0:
+            return acquire_funds("ori", pb, "safe") << "Ori"
+        if gamble_type == 1:
+            return acquire_funds("ori", pb, "risk") << "Ori"
+
+    dice.plot_stats([yoad_acquire, ori_acquire],
+                    [["Proficiency Bonus", 2, 2, 4, 1],
+                    ["Gamble Type (0 = Safe, 1 = Risk)", 0, 0, 1, 1]])
+
+    acquire_funds("yoad", 2, "safe").print_normal()

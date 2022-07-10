@@ -43,12 +43,13 @@ def flatten(S):
     return S[:1] + flatten(S[1:])
 
 
-def print_data(die, dictionary, name=None):
+def print_data(die, dictionary, name=None, precision=2):
     """
     Prints the statistics of a die according to a certain mode
     :param die: The die to print
     :param dictionary: The die's data to print. Can be the die's pdf, cdf etc.
     :param name: Optional parameter. If given, sets the die's name and use it for the print
+    :param precision: Number describing how many decimal digits the data will have
     """
 
     # Print parameters
@@ -60,6 +61,9 @@ def print_data(die, dictionary, name=None):
     empty_char = ' '
     # Character to place at the end of the bar, for better readability
     end_char = '-'
+    # Floating Point Format
+    fpf = "." + str(precision) + "f"
+    fpf_ext = "{:" + fpf + "}"
     # Force `tabulate` to keep whitespace so empty bars (i.e. very unlikely outcomes) are printed correctly
     tabulate.PRESERVE_WHITESPACE = True
 
@@ -69,7 +73,8 @@ def print_data(die, dictionary, name=None):
 
     # Table header
     # For the bar column, the header is general information about the die (name, mean, std)
-    text_header = ['#', '%', "{} ({:.2f} / {:.2f})".format(die.name, die.mean(), die.std())]
+    header = '{} (' + fpf_ext + ' / ' + fpf_ext + ')'
+    text_header = ['#', '%', header.format(die.name, die.mean(), die.std())]
     text = [text_header]
 
     # Loop over all possible rolls, sorted by value
@@ -85,7 +90,8 @@ def print_data(die, dictionary, name=None):
     # Print the table
     # Use the first row as a header row
     # Force floating point numbers to use 2 decimal places
-    print(tabulate.tabulate(text, headers='firstrow', floatfmt='.2f'))
+    print(tabulate.tabulate(text, headers='firstrow', floatfmt=fpf))
+    print("")
 
 
 def find_percentile(cdf_dict, percentile):
