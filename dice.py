@@ -291,21 +291,21 @@ class dice:
         :param power: How many dice to roll
         :return: A new die, with statistics according to the sum of the die
         """
+        # Roll a die zero times, so the result is always 0
         if power == 0:
             return zero()
-        if power == 1:
+        # Roll a die once, so copy the self die and return it
+        elif power == 1:
             return copy.deepcopy(self)
+        # Roll more than one die, call power recursively
         else:
-            # return (self ** (power - 1)) + copy.deepcopy(self)
+            # return self ** (power/2) ** 2
             if power % 2:
-                half_power_smaller = power // 2
-                half_power_larger = power - (power // 2)
-                half_die_smaller = self ** half_power_smaller
-                half_die_larger = self ** half_power_larger
-                return half_die_smaller + half_die_larger
+                half_die = self ** (power // 2)
+                return half_die + half_die + self
             else:
-                half_amount = self ** (power / 2)
-                return half_amount + half_amount
+                half_die = self ** (power / 2)
+                return half_die + half_die
 
     def __neg__(self):
         """
@@ -452,10 +452,12 @@ class dice:
 
         return new_dice
 
-    def switch(self, *args):
+    def switch(self, *args, default=None):
         """
         Uses the first die (which rolls integers between 0 and N-1) to choose a second die
         :param args: A list or tuple of the other set of dice
+        :param default: A value or dice to take when the self die gets a value not described by args.
+                        If this is None, the function will throw an error.
         :return: The new die
         """
 
@@ -475,15 +477,30 @@ class dice:
         for i in range(len(other_dice_list)):
             other_dice_list[i] = dice_utilities.force_cube(other_dice_list[i])
 
+        if default is not None:
+            default = dice_utilities.force_cube(default)
+
         new_dice = dice()
 
         for self_roll, self_chance in self.pdf.items():
-            for other_roll, other_chance in other_dice_list[self_roll].pdf.items():
-                # If this roll is not a possible roll of the new dice, add it with probability of 0
-                if other_roll not in new_dice.pdf.keys():
-                    new_dice.pdf[other_roll] = 0
-                # Increase the chance of getting this outcome by the product of the probabilities of each die
-                new_dice.pdf[other_roll] += self_chance * other_chance
+            if self_roll < len(other_dice_list):
+                for other_roll, other_chance in other_dice_list[self_roll].pdf.items():
+                    # If this roll is not a possible roll of the new dice, add it with probability of 0
+                    if other_roll not in new_dice.pdf.keys():
+                        new_dice.pdf[other_roll] = 0
+                    # Increase the chance of getting this outcome by the product of the probabilities of each die
+                    new_dice.pdf[other_roll] += self_chance * other_chance
+            else:
+                if default is None:
+                    raise Exception('The self die can get a value of ' + str(
+                        self_roll) + ' which is not described by the args list')
+                else:
+                    for default_roll, default_chance in default.pdf.items():
+                        # If this roll is not a possible roll of the new dice, add it with probability of 0
+                        if default_roll not in new_dice.pdf.keys():
+                            new_dice.pdf[default_roll] = 0
+                        # Increase the chance of getting this outcome by the product of the probabilities of each die
+                        new_dice.pdf[default_roll] += self_chance * default_chance
 
         return new_dice
 
@@ -513,7 +530,7 @@ class dice:
                 if default_value is None:
                     # If the dictionary doesn't have information about this roll, and there is no default value,
                     # raise an error
-                    raise ()
+                    raise Exception('Value of ' + str(roll) + ' is not described by the dictionary')
                 else:
                     new_value = default_value
                     # Transform the new roll into a die if it is not already
@@ -983,7 +1000,7 @@ class dice:
                 return self.reroll_func(lambda x: x != val, max_depth=max_depth)
             # If the sign is not one of those six, raise an error
             case _:
-                raise
+                raise Exception('Invalid comparison operator')
 
 
 # ~~~~~~~~~ Custom Dice Constructors ~~~~~~~~~
@@ -1356,7 +1373,7 @@ def chain_compare(*args):
                 return dice_utilities.force_cube(args[0]) != dice_utilities.force_cube(args[2])
             # If the sign is not one of these six, raise an error
             case _:
-                raise
+                raise Exception('Invalid comparison operator')
 
     # Create a dictionary that hold only the cases where the comparison is True
     # The key is the value of the last die
@@ -1385,7 +1402,7 @@ def chain_compare(*args):
                     result = roll1 != roll2
                 # If the sign is not one of these six, raise an error
                 case _:
-                    raise
+                    raise Exception('Invalid comparison operator')
 
             # Update the <new_dict> if the result is true
             if result:
@@ -1427,7 +1444,7 @@ def chain_compare(*args):
                         result = dict_tuple != roll
                     # If the sign is not one of these six, raise an error
                     case _:
-                        raise
+                        raise Exception('Invalid comparison operator')
 
                 # We only update the <new_dict> if the result is true
                 if result:
@@ -1768,7 +1785,6 @@ def plot_mean(dice_list, dynamic_vars, title=None):
         # The plot is empty at first, but it will be populated later
         line, = d_ax.plot(np.array([]), np.array([]), 'o-', linewidth=3, label='')
         lines_list.append(line)
-
 
     update()
     # General plot details

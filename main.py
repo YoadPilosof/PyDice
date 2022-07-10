@@ -341,20 +341,5 @@ if __name__ == '__main__':
     # class_comparison()
     # acquire_funds(2)
 
-    def yoad_acquire(pb, gamble_type):
-        if gamble_type == 0:
-            return acquire_funds("yoad", pb, "safe") << "Yoad"
-        if gamble_type == 1:
-            return acquire_funds("yoad", pb, "risk") << "Yoad"
 
-    def ori_acquire(pb, gamble_type):
-        if gamble_type == 0:
-            return acquire_funds("ori", pb, "safe") << "Ori"
-        if gamble_type == 1:
-            return acquire_funds("ori", pb, "risk") << "Ori"
 
-    dice.plot_stats([yoad_acquire, ori_acquire],
-                    [["Proficiency Bonus", 2, 2, 4, 1],
-                    ["Gamble Type (0 = Safe, 1 = Risk)", 0, 0, 1, 1]])
-
-    acquire_funds("yoad", 2, "safe").print_normal()
