@@ -277,7 +277,8 @@ def class_comparison():
     turns_slider = ['Number of Turns', 1, 1, 10]
 
     dice.plot_mean([warlock, fighter, rogue, monk], [level_slider, ac_slider, turns_slider],
-                   title="Damage Per Round Comparison")
+                   title="Damage Per Round Comparison",
+                   y_lim='max')
 
 
 def acquire_funds(pc = "ori", prof=2, type = "safe"):
@@ -338,8 +339,9 @@ if __name__ == '__main__':
     # Theyandor()
     # hold_person()
     # attack_options_rogue()
-    # class_comparison()
+    class_comparison()
     # acquire_funds(2)
-
-
+    rerolled = lambda x : d12.reroll_comp('<=', x) << "Reroll on " + str(x) + " or lower"
+    # dice.plot_stats(rerolled, ["Reroll LT", 0, 1, 12], y_lim='max')
+    # TODO: Add non-auto y-min to plot
 

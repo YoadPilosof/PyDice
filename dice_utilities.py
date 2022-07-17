@@ -329,7 +329,7 @@ def update_plot(fig, ax, line_list, plot_kwargs):
 
     # Automatically scale the x-axis and y-axis according to the new data
     ax.relim()
-    ax.autoscale_view()
+    ax.autoscale()
     if 'x_label' in plot_kwargs.keys():
         ax.set_xlabel(plot_kwargs['x_label'])
     if 'y_label' in plot_kwargs.keys():
@@ -341,6 +341,20 @@ def update_plot(fig, ax, line_list, plot_kwargs):
         ax.set_xticks(plot_kwargs['x_ticks'])
     if 'y_ticks' in plot_kwargs.keys():
         ax.set_yticks(plot_kwargs['y_ticks'])
+    if 'y_lim' in plot_kwargs.keys():
+        y_lim = plot_kwargs['y_lim']
+        if y_lim is not None:
+            if (isinstance(y_lim, list) or isinstance(y_lim, list)) and len(y_lim) == 2:
+                ax.set_ylim(y_lim[0], y_lim[1])
+            elif y_lim == 'max':
+                current_y_lim = ax.get_ylim()
+                if ax.max_y_lim is None:
+                    ax.max_y_lim = [current_y_lim[0], current_y_lim[1]]
+                ax.max_y_lim[0] = min(ax.max_y_lim[0], current_y_lim[0])
+                ax.max_y_lim[1] = max(ax.max_y_lim[1], current_y_lim[1])
+                ax.set_ylim(ax.max_y_lim[0], ax.max_y_lim[1])
+            else:
+                raise Exception('Invalid value for y_lim')
     # Refresh the figure
     fig.canvas.draw_idle()
 

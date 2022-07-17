@@ -1519,9 +1519,13 @@ def print_summary(dice_list, DesiredPrints=None):
         print(tabulate(text, headers='firstrow') + '\n')
 
 
-def plot_stats(dice_list, dynamic_vars=None, x_label='Value', title=None):
+def plot_stats(dice_list, dynamic_vars=None, x_label='Value', title=None, y_lim=None):
     """
     Plot basic stats (normal [pdf], atmost [cdf] and atleast [1+pdf-cdf]) of a list of dice
+    :param y_lim: Defines the y-limits of the plot.
+                    Set as `None` for auto y-lim.
+                    Set as a 2-length tuple or list to explicitly define the y-limits (min, max).
+                    Set as `'max'` so the plot will scale will the graph but will only become bigger
     :param dice_list: A list of dice to plot the info of
     :param dynamic_vars: A list of lists. Each list describes a slider in the plot, in the following format:
                                             - Slider name
@@ -1552,6 +1556,9 @@ def plot_stats(dice_list, dynamic_vars=None, x_label='Value', title=None):
     # If only one die was given, and not as a list, we turn it into a list of length 1
     if not isinstance(dice_list, list):
         dice_list = [dice_list]
+
+    # Add a field to d_ax that holds the maximum values of the y-lim
+    d_ax.max_y_lim = None
 
     # Create the list of sliders according to the list of parameters given
     sliders_list = []
@@ -1584,6 +1591,7 @@ def plot_stats(dice_list, dynamic_vars=None, x_label='Value', title=None):
             plot_kwargs['y_data'] = [xy_data_elem[1] for xy_data_elem in xy_data]
             plot_kwargs['legend_labels'] = [xy_data_elem[2] for xy_data_elem in xy_data]
             plot_kwargs['x_label'] = x_label
+            plot_kwargs['y_lim'] = y_lim
             match mode[0]:
                 case 'normal':
                     plot_kwargs['y_label'] = 'Probability - Normal'
@@ -1605,6 +1613,7 @@ def plot_stats(dice_list, dynamic_vars=None, x_label='Value', title=None):
             plot_kwargs['y_data'] = [xy_data_elem[1] for xy_data_elem in xy_data]
             plot_kwargs['legend_labels'] = [xy_data_elem[2] for xy_data_elem in xy_data]
             plot_kwargs['x_label'] = dice_utilities.plot_stats__get_x_label(x_label, sliders_list)
+            plot_kwargs['y_lim'] = y_lim
             match mode[0]:
                 case 'normal':
                     plot_kwargs['y_label'] = 'Probability - Normal'
@@ -1689,9 +1698,13 @@ def plot_stats(dice_list, dynamic_vars=None, x_label='Value', title=None):
     plt.show()
 
 
-def plot_mean(dice_list, dynamic_vars, title=None):
+def plot_mean(dice_list, dynamic_vars, title=None, y_lim=None):
     """
     Plot the mean of a list of dice
+    :param y_lim: Defines the y-limits of the plot.
+                    Set as `None` for auto y-lim.
+                    Set as a 2-length tuple or list to explicitly define the y-limits (min, max).
+                    Set as `'max'` so the plot will scale will the graph but will only become bigger
     :param dice_list: A list of dice to plot the info of
     :param dynamic_vars: A list of lists. Each list describes a slider in the plot, in the following format:
                                             - Slider name
@@ -1720,6 +1733,10 @@ def plot_mean(dice_list, dynamic_vars, title=None):
         if len(dynamic_var) == 4:
             dynamic_var.append(1)
 
+
+    # Add a field to d_ax that holds the maximum values of the y-lim
+    d_ax.max_y_lim = None
+
     # Define the lists that contain all the buttons and sliders
     # We define them now because we need them for the update function
     sliders_list = []
@@ -1730,6 +1747,7 @@ def plot_mean(dice_list, dynamic_vars, title=None):
         plot_kwargs = dice_utilities.plot_mean__get_data_by_slider(dice_list,
                                                                    sliders_list,
                                                                    buttons_list)
+        plot_kwargs['y_lim'] = y_lim
         dice_utilities.update_plot(d_fig, d_ax, lines_list, plot_kwargs)
 
     # Parameters for the gui
