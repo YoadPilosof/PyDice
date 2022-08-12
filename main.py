@@ -1,7 +1,12 @@
+import random
+
+import tabulate
+
 import dice
 import time
 import dnd
 import math
+import numpy as np
 
 
 def general_examples():
@@ -325,6 +330,198 @@ def acquire_funds(pc = "ori", prof=2, type = "safe"):
         return take_a_risk
 
 
+def upgrade_weapons_v2(upgrades, ac, roll, mod, pb, extra_dmg=0):
+    UpgradeNamesList = ['Balanced', 'Wounding', 'Critical', 'Destroying', 'Brutal', 'Superior',
+                    'Reliable', 'Gambling - Balanced', 'Gambling - Wounding', 'Hasty',
+                    'Grazing']
+    UpgradeCostsList = [200, 350, 500, 750, 1000, 1500, 2000, 3000, 4500, 6000, 8000, 10000]
+
+    Upgrades = [UpgradeNamesList[i] for i in range(len(UpgradeNamesList)) if upgrades[i]]
+    Cost = sum(UpgradeCostsList[0:sum(upgrades)])
+
+    d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+    damage_c = d8
+    damage_n = dice.zero() + mod
+    hit_bonus = dice.zero() + mod + pb
+    crit_thresh = 20
+    miss_dmg = 0
+    extra_crit_dmg = dice.zero()
+    mult = dice.zero() + 1
+
+    if 'Balanced' in Upgrades:
+        hit_bonus += 1
+
+    if 'Wounding' in Upgrades:
+        damage_n += 1
+
+    if 'Critical' in Upgrades:
+        crit_thresh -= 1
+
+    if 'Destroying' in Upgrades:
+        extra_crit_dmg = d6**2
+
+    if 'Superior' in Upgrades:
+        damage_c = d10
+
+    if 'Brutal' in Upgrades:
+        damage_c = damage_c.exp(3)
+
+    if 'Reliable' in Upgrades:
+        damage_c = damage_c.reroll_on([1, 2])
+
+    if 'Gambling - Balanced' in Upgrades:
+        hit_bonus += dice.binary(0.1)*15
+
+    if 'Gambling - Wounding' in Upgrades:
+        damage_n += dice.binary(0.1)*15
+
+    if 'Hasty' in Upgrades:
+        mult += dice.binary(0.05)
+
+    if 'Grazing' in Upgrades:
+        miss_dmg = 2
+
+    Attack = dnd.hit(roll, hit_bonus, ac, crit_thresh).switch(miss_dmg,
+                                                              damage_c + damage_n,
+                                                              damage_c*2 + damage_n + extra_crit_dmg) * mult
+    return Attack.mean(), Upgrades, Cost
+
+def upgrade_weapons_v2_overview():
+    d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+    NumOfUpgrades = 11
+    AC = d10 + 10
+    roll = d20
+    mod = 4
+    pb = 3
+
+
+    def generate_binary_vecs(len):
+        if len == 1:
+            return [[0], [1]]
+        sub_vectors = generate_binary_vecs(len-1)
+        vectors = []
+        for sub_vector in sub_vectors:
+            vectors.append([0] + sub_vector)
+        for sub_vector in sub_vectors:
+            vectors.append([1] + sub_vector)
+        return vectors
+
+    Data = []
+    UpgradesVectors = generate_binary_vecs(NumOfUpgrades)
+    UpgradesVectors.sort(key=sum)
+
+    i = 0
+    for UpgradesVector in UpgradesVectors:
+        if i % 100 == 0:
+            print(i)
+        i += 1
+        m, u, c = upgrade_weapons_v2(UpgradesVector, AC, d20, mod, pb, d6 ** 2)
+        Data.append((c, m, u))
+
+    Data.sort(key=lambda d: (d[0], d[1]))
+
+    print(tabulate.tabulate(Data))
+
+    shapley_values = shapley_value(lambda vec: upgrade_weapons_v2(vec, AC, d20, mod, pb, d6 ** 2), NumOfUpgrades)
+    print(shapley_values)
+    pass
+
+def shapley_value(func, vec_len):
+    def generate_binary_vecs(len):
+        if len == 1:
+            return [[0], [1]]
+        sub_vectors = generate_binary_vecs(len - 1)
+        vectors = []
+        for sub_vector in sub_vectors:
+            vectors.append([0] + sub_vector)
+        for sub_vector in sub_vectors:
+            vectors.append([1] + sub_vector)
+        return vectors
+
+    vectors = generate_binary_vecs(vec_len)
+    value = []
+    for i in range(vec_len):
+        print(i)
+        s = 0
+        for vector in vectors:
+            vec_copy = vector.copy()
+            vec_copy[i] = 1
+            value_with = func(vec_copy)
+            vec_copy[i] = 0
+            value_without = func(vec_copy)
+            s += value_with[0] - value_without[0]
+        s /= 2**vec_len
+        value.append(s)
+    return value
+
+
+def compare_flash_strike():
+    def flash_strike(ac, crit=False):
+        d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+        hit_dmg = d8 + 5 + d6 ** 4
+        crit_dmg = d8**2 + d6 ** 8 + 5
+        if (crit):
+            dmg = dnd.hit(d20.adv(), 8, ac, 18).switch(0, crit_dmg, crit_dmg)
+        else:
+            dmg = dnd.hit(d20.adv(), 8, ac, 18).switch(0, hit_dmg, crit_dmg)
+        return dmg << 'Flash Strike'
+
+    def flash_strike_v2(ac, crit=False):
+        d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+        hit_dmg = d8 + 5 + d6 ** 2
+        crit_dmg = d8**2 + d6 ** 4 + 5
+        if (crit):
+            dmg = dnd.hit(d20.adv(), 8, ac, 18).switch(0, crit_dmg, crit_dmg) ** 2
+        else:
+            dmg = dnd.hit(d20.adv(), 8, ac, 18).switch(0, hit_dmg, crit_dmg)
+            dmg += dnd.hit(d20, 8, ac, 20).switch(0, d8 + 5, d8 ** 2 + 5)
+        return dmg << 'Flash Strike (v2)'
+
+    def normal_samurai(ac, crit=False):
+        d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+        hit_dmg = d8 + 5
+        crit_dmg = d8**2 + 5
+        if (crit):
+            dmg = dnd.hit(d20.adv(), 8, ac, 20).switch(0, crit_dmg, crit_dmg)
+        else:
+            dmg = dnd.hit(d20.adv(), 8, ac, 20).switch(0, hit_dmg, crit_dmg)
+        return dmg ** 2 << 'Normal Samurai'
+
+    def basic(ac, crit=False):
+        d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+        hit_dmg = d8 + 5
+        crit_dmg = d8**2 + 5
+        if (crit):
+            dmg = dnd.hit(d20.adv(), 8, ac, 20).switch(0, crit_dmg, crit_dmg)
+        else:
+            dmg = dnd.hit(d20, 8, ac, 20).switch(0, hit_dmg, crit_dmg)
+        return dmg ** 2 << 'Basic'
+
+    def champion(ac, crit=False):
+        d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+        hit_dmg = d8 + 5
+        crit_dmg = d8**2 + 5
+        if (crit):
+            dmg = dnd.hit(d20.adv(), 8, ac, 19).switch(0, crit_dmg, crit_dmg)
+        else:
+            dmg = dnd.hit(d20, 8, ac, 19).switch(0, hit_dmg, crit_dmg)
+        return dmg ** 2 << 'Champion'
+
+    def echo(ac, crit=False):
+        d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+        hit_dmg = d8 + 5
+        crit_dmg = d8**2 + 5
+        if (crit):
+            dmg = dnd.hit(d20.adv(), 8, ac, 20).switch(0, crit_dmg, crit_dmg)
+        else:
+            dmg = dnd.hit(d20, 8, ac, 20).switch(0, hit_dmg, crit_dmg)
+        return dmg ** 3 << 'Echo Knight'
+
+    sld_ac = ['AC', 12, 12, 20]
+    sld_hold_person = ['Paralyze', 0, 0, 1]
+    dice.plot_mean([flash_strike, flash_strike_v2, normal_samurai , basic, echo], [sld_ac, sld_hold_person])
+
+
 if __name__ == '__main__':
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
     # dice.print_summary([d4 << "1d4", d6 << "1d6", d8 << "1d8", d10 << "1d10", d12 << "1d12", d20 << "1d20", d100 << "1d100"], 0)
@@ -339,9 +536,12 @@ if __name__ == '__main__':
     # Theyandor()
     # hold_person()
     # attack_options_rogue()
-    class_comparison()
+    # class_comparison()
     # acquire_funds(2)
-    rerolled = lambda x : d12.reroll_comp('<=', x) << "Reroll on " + str(x) + " or lower"
+    # rerolled = lambda x : d12.reroll_comp('<=', x) << "Reroll on " + str(x) + " or lower"
     # dice.plot_stats(rerolled, ["Reroll LT", 0, 1, 12], y_lim='max')
-    # TODO: Add non-auto y-min to plot
+    # TODO: Add checkboxes and non-number sliders
+    # upgrade_weapons_v2_overview()
+    # compare_flash_strike()
+
 

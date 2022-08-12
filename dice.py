@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import random
 import copy
 import math
@@ -6,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tabulate import tabulate
 from matplotlib.widgets import Slider, Button
+from typing import Type, Callable, Union
 
 
 class dice:
@@ -13,42 +16,42 @@ class dice:
         self.pdf = {}
         self.name = "Unnamed Die"
 
-    def __rshift__(self, other):
+    def __rshift__(self, other: str) -> dice:
         """
         Name a die
         """
         self.name = other
         return self
 
-    def __lshift__(self, other):
+    def __lshift__(self, other: str) -> dice:
         """
         Name a die
         """
         self.name = other
         return self
 
-    def print_normal(self, precision=2):
+    def print_normal(self, precision: int = 2) -> None:
         """
         Prints general info about the dice (mean and std), and prints a graph-like plot of the pdf of the dice
         """
 
         dice_utilities.print_data(self, self.pdf, self.name, precision)
 
-    def print_at_least(self, precision=2):
+    def print_at_least(self, precision: int = 2) -> None:
         """
         Prints general info about the dice (mean and std), and prints a graph-like plot about the chance to get at least a value
         """
 
         dice_utilities.print_data(self, self.at_least(), self.name, precision)
 
-    def print_at_most(self, precision=2):
+    def print_at_most(self, precision: int = 2) -> None:
         """
         Prints general info about the dice (mean and std), and prints a graph-like plot about the chance to get at most a value
         """
 
         dice_utilities.print_data(self, self.at_most(), self.name, precision)
 
-    def at_least(self):
+    def at_least(self) -> dict[float, float]:
         """
         :return: A dictionary describing the chance to get at least that result
         """
@@ -59,7 +62,7 @@ class dice:
             old_value -= self.pdf[roll]
         return new_dict
 
-    def at_most(self):
+    def at_most(self) -> dict[float, float]:
         """
         :return: A dictionary describing the chance to get at most that result
         """
@@ -70,7 +73,7 @@ class dice:
             new_dict[roll] = old_value
         return new_dict
 
-    def mean(self):
+    def mean(self) -> float:
         """
         :return: Returns the mean of the die
         """
@@ -79,7 +82,7 @@ class dice:
             res += roll * chance
         return res
 
-    def std(self):
+    def std(self) -> float:
         """
         :return: Returns the standard deviation of the die
         """
@@ -92,19 +95,19 @@ class dice:
             var += ((roll - m) ** 2) * chance
         return math.sqrt(var)
 
-    def max(self):
+    def max(self) -> float:
         """
         :return: The maximum value the die can roll
         """
         return max(self.pdf.keys())
 
-    def min(self):
+    def min(self) -> float:
         """
         :return: The minimum value the die can roll
         """
         return min(self.pdf.keys())
 
-    def roll(self, n=0):
+    def roll(self, n: int = 0) -> float | list[float]:
         """
         Simulates a roll of the die
         :param n: How many dice rolls to simulate
@@ -126,7 +129,7 @@ class dice:
         # For other values of n, convert the list of indices to a list of rolls
         return [rolls[index[i]] for i in range(len(index))]
 
-    def norm(self):
+    def norm(self) -> float:
         """
         Debugging method
         :return: The sum of all probabilities of the die. Should be 1 at all times
@@ -135,7 +138,7 @@ class dice:
 
     # ~~~~~~~~~ Overloaded Binary and Unary Operations ~~~~~~~~~
 
-    def __add__(self, other):
+    def __add__(self, other: dice | float | int) -> dice:
         """
         Creates a die describing the sum of two dice
         :param other: The second die to add. Can be a number
@@ -160,7 +163,7 @@ class dice:
         # Return the new die
         return new_dice
 
-    def __sub__(self, other):
+    def __sub__(self, other: dice | float | int) -> dice:
         """
         Creates a die describing the difference of two dice
         :param other: The second die to subtract. Can be a number
@@ -185,7 +188,7 @@ class dice:
         # Return the new die
         return new_dice
 
-    def __mul__(self, other):
+    def __mul__(self, other: dice | float | int) -> dice:
         """
         Creates a die describing the product of two dice
         :param other: The second die to multiply. Can be a number
@@ -210,7 +213,7 @@ class dice:
         # Return the new die
         return new_dice
 
-    def __truediv__(self, other):
+    def __truediv__(self, other: dice | float | int) -> dice:
         """
         Creates a die describing the floating point division of two dice
         :param other: The second die to divide by. Can be a number
@@ -235,7 +238,7 @@ class dice:
         # Return the new die
         return new_dice
 
-    def __mod__(self, other):
+    def __mod__(self, other: dice | float | int) -> dice:
         """
         Creates a die describing the modulus of two dice
         :param other: The second die to perform modulus by. Can be a number
@@ -260,7 +263,7 @@ class dice:
         # Return the new die
         return new_dice
 
-    def __floordiv__(self, other):
+    def __floordiv__(self, other: dice | float | int) -> dice:
         """
         Creates a die describing the integer division of two dice
         :param other: The second die to divide by. Can be a number
@@ -285,7 +288,7 @@ class dice:
         # Return the new die
         return new_dice
 
-    def __pow__(self, power, modulo=None):
+    def __pow__(self, power: dice | float | int, modulo=None) -> dice:
         """
         Creates a die describing rolling the same die multiple times and taking the sum
         :param power: How many dice to roll
@@ -307,7 +310,7 @@ class dice:
                 half_die = self ** (power / 2)
                 return half_die + half_die
 
-    def __neg__(self):
+    def __neg__(self) -> dice:
         """
         :return: Flips the sign of the values of the dice
         """
@@ -318,7 +321,7 @@ class dice:
 
     # ~~~~~~~~~ Common die manipulation ~~~~~~~~~
 
-    def adv(self, n=2):
+    def adv(self, n: int = 2) -> dice:
         """
         :return: A new die, describing rolling the current die n times, and taking the highest result
         """
@@ -327,7 +330,7 @@ class dice:
         else:
             return self.get_pos(0, n)
 
-    def dis(self, n=2):
+    def dis(self, n: int = 2) -> dice:
         """
         :return: A new die, describing rolling the current die n times, and taking the lowest result
         """
@@ -336,7 +339,7 @@ class dice:
         else:
             return self.get_pos(n - 1, n)
 
-    def exp(self, explode_on=None, max_depth=2):
+    def exp(self, explode_on: float | int | None = None, max_depth: int = 2) -> dice:
         """
         Simulates exploding a die, i.e., rolling the die, and if it rolls the highest value, roll it again
         :param explode_on: Optional parameter. If given, the die will explode on this value, instead of the maximum value of the die
@@ -380,7 +383,7 @@ class dice:
 
         return new_dice
 
-    def count(self, *args):
+    def count(self, *args) -> dice:
         """
         Simulates rolling a die, and checking if it appears in the list.
         The value is based on the amount of times the roll appears in the list
@@ -406,7 +409,7 @@ class dice:
 
         return new_dice
 
-    def count_attempts(self, max_depth):
+    def count_attempts(self, max_depth: int) -> dice:
         """
         Simulates rolling the self die until getting a non-zero result.
         :param max_depth: Maximum simulation depth, after max_depth rolls, we assume the next one is non-zero
@@ -421,7 +424,7 @@ class dice:
 
         return new_die
 
-    def cond(self, die_if_true, die_if_false=0):
+    def cond(self, die_if_true: dice | float | int, die_if_false: dice | float | int = 0) -> dice:
         """
         Uses the first boolean die to choose a second die
         :param die_if_true: The die to choose if the first one is True
@@ -452,7 +455,7 @@ class dice:
 
         return new_dice
 
-    def switch(self, *args, default=None):
+    def switch(self, *args: dice | float | int, default=None) -> dice:
         """
         Uses the first die (which rolls integers between 0 and N-1) to choose a second die
         :param args: A list or tuple of the other set of dice
@@ -504,7 +507,7 @@ class dice:
 
         return new_dice
 
-    def dictionary(self, roll_dictionary, default_value=None):
+    def dictionary(self, roll_dictionary: dict[float, dice | float | int], default_value=None) -> dice:
         """
         Transforms the die according to a dictionary
         :param roll_dictionary: A dictionary describing the transformation, has <float> input and <die>/<float> output
@@ -541,7 +544,7 @@ class dice:
 
         return new_dice
 
-    def get_pos(self, pos_index, num_dice):
+    def get_pos(self, pos_index: int | list[int], num_dice: int) -> dice:
         """
         Simulates rolling the <self> die <num_dice> times, and taking the <pos_index>th largest value
         :param pos_index: Which die to take. Can be a list
@@ -590,7 +593,7 @@ class dice:
 
         return new_dice
 
-    def drop_pos(self, pos_index, num_dice):
+    def drop_pos(self, pos_index: int | list[int], num_dice: int) -> dice:
         """
         Simulates rolling the <self> die <num_dice> times, and dropping the <pos_index>th largest value
         :param pos_index: Which die to drop. Can be a list
@@ -608,7 +611,7 @@ class dice:
         # We call the get_pos method with the list of indices to keep
         return self.get_pos(keep_pos_index, num_dice)
 
-    def round(self):
+    def round(self) -> dice:
         """
         Rounds the die result
         :return: The new die
@@ -627,7 +630,7 @@ class dice:
         # Return the new die
         return new_dice
 
-    def floor(self):
+    def floor(self) -> dice:
         """
         Rounds down the die result
         :return: The new die
@@ -646,7 +649,7 @@ class dice:
         # Return the new die
         return new_dice
 
-    def ceil(self):
+    def ceil(self) -> dice:
         """
         Rounds up the die result
         :return: The new die
@@ -665,7 +668,7 @@ class dice:
         # Return the new die
         return new_dice
 
-    def func(self, lambda_func):
+    def func(self, lambda_func: Callable[[Union[float, int]], Union[float, int, dice]]) -> dice:
         """
         Executes a generic, 1 argument function, on the <self> die
         :param lambda_func: The function to execute
@@ -686,7 +689,7 @@ class dice:
 
     # ~~~~~~~~~ Overloaded Comparative Operations ~~~~~~~~~
 
-    def __lt__(self, other):
+    def __lt__(self, other: dice | float | int) -> dice:
         """
         Creates a boolean die (can roll 0 [false] or 1 [true])
         The new die describes if <self> is less than <other>
@@ -709,7 +712,7 @@ class dice:
 
         return new_dice
 
-    def __le__(self, other):
+    def __le__(self, other: dice | float | int) -> dice:
         """
         Creates a boolean die (can roll 0 [false] or 1 [true])
         The new die describes if <self> is less than or equal to <other>
@@ -732,7 +735,7 @@ class dice:
 
         return new_dice
 
-    def __eq__(self, other):
+    def __eq__(self, other: dice | float | int) -> dice:
         """
         Creates a boolean die (can roll 0 [false] or 1 [true])
         The new die describes if <self> is equal to <other>
@@ -755,7 +758,7 @@ class dice:
 
         return new_dice
 
-    def __ne__(self, other):
+    def __ne__(self, other: dice | float | int) -> dice:
         """
         Creates a boolean die (can roll 0 [false] or 1 [true])
         The new die describes if <self> is not equal to <other>
@@ -778,7 +781,7 @@ class dice:
 
         return new_dice
 
-    def __gt__(self, other):
+    def __gt__(self, other: dice | float | int) -> dice:
         """
         Creates a boolean die (can roll 0 [false] or 1 [true])
         The new die describes if <self> is greater than <other>
@@ -801,7 +804,7 @@ class dice:
 
         return new_dice
 
-    def __ge__(self, other):
+    def __ge__(self, other: dice | float | int) -> dice:
         """
         Creates a boolean die (can roll 0 [false] or 1 [true])
         The new die describes if <self> is greater than or equal to <other>
@@ -826,7 +829,7 @@ class dice:
 
     # ~~~~~~~~~ Overloaded Boolean Operators ~~~~~~~~~
 
-    def __and__(self, other):
+    def __and__(self, other: dice) -> dice:
         """
         Creates a boolean die, describing the 'and' operation on two dice
         Each die is treated as a boolean die, where a value of 0 is treated as false, and any other value is treated as true
@@ -853,7 +856,7 @@ class dice:
 
         return new_dice
 
-    def __or__(self, other):
+    def __or__(self, other: dice) -> dice:
         """
         Creates a boolean die, describing the 'or' operation on two dice
         Each die is treated as a boolean die, where a value of 0 is treated as false, and any other value is treated as true
@@ -880,7 +883,7 @@ class dice:
 
         return new_dice
 
-    def __xor__(self, other):
+    def __xor__(self, other: dice) -> dice:
         """
         Creates a boolean die, describing the 'xor' operation on two dice
         Each die is treated as a boolean die, where a value of 0 is treated as false, and any other value is treated as true
@@ -907,7 +910,7 @@ class dice:
 
         return new_dice
 
-    def __invert__(self):
+    def __invert__(self) -> dice:
         """
         Creates a boolean die, describing the inversion operator on a die
         The die is treated as a boolean die, where a value of 0 is treated as false, and any other value is treated as true
@@ -927,7 +930,7 @@ class dice:
 
     # ~~~~~~~~~ Reroll Methods ~~~~~~~~~
 
-    def reroll_func(self, lambda_cond, max_depth=1):
+    def reroll_func(self, lambda_cond: Callable[[float | int], bool], max_depth: int = 1) -> dice:
         """
         A general reroll function. Simulates rolling a die, and rerolling the dice if a certain condition is met
         :param lambda_cond: A lambda function that takes a number and returns a boolean.
@@ -956,7 +959,7 @@ class dice:
 
         return new_dice
 
-    def reroll_on(self, match_list, max_depth=1):
+    def reroll_on(self, match_list: float | int | list[float | int], max_depth: int =1) -> dice:
         """
         Simulates rolling a die, and rerolling the dice if the value is in match_list
         :param match_list: A number or a list to compare. Can be a nested list
@@ -975,7 +978,7 @@ class dice:
         # Call the general reroll method, with the reroll condition being if the roll was on the reroll list
         return self.reroll_func(lambda x: x in flattened_match_list, max_depth)
 
-    def reroll_comp(self, sign, val, max_depth=1):
+    def reroll_comp(self, sign: str, val: dice | float | int, max_depth: int = 1) -> dice:
         """
         Rerolls the <self> die based on a comparison condition
         :param sign: A string defining the comparison
@@ -1006,7 +1009,7 @@ class dice:
 # ~~~~~~~~~ Custom Dice Constructors ~~~~~~~~~
 
 
-def d(size, n=1):
+def d(size: int, n: int = 1) -> dice:
     """
     Constructs a new die, which is uniformly distributed over 1 .. size
     :param size: The size of the die
@@ -1033,7 +1036,7 @@ def d(size, n=1):
     return new_dice
 
 
-def standard_dice():
+def standard_dice() -> tuple[dice, dice, dice, dice, dice, dice, dice]:
     """
     A helpful function that generates the 7 basic RPG dice. Use:
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
@@ -1050,7 +1053,7 @@ def standard_dice():
     return d4, d6, d8, d10, d12, d20, d100
 
 
-def from_const(val):
+def from_const(val: int | float) -> dice:
     """
     Constructs a trivial die with only one value
     :param val: The value of the die
@@ -1061,7 +1064,7 @@ def from_const(val):
     return new_dice
 
 
-def zero():
+def zero() -> dice:
     """
     Constructs a trivial die with only value of 0
     :return: The new die
@@ -1071,7 +1074,7 @@ def zero():
     return new_dice
 
 
-def list2dice(values_list):
+def list2dice(values_list: list[float | int]) -> dice:
     """
     Constructs a new die according to a list, such that the chance to get each value in the list is equiprobable
     If a value appears multiple times in the list, the chance of rolling it increases accordingly
@@ -1091,7 +1094,7 @@ def list2dice(values_list):
     # ~~~~~~~~~ Dice Functions ~~~~~~~~~
 
 
-def range2dice(*args):
+def range2dice(*args: float) -> dice:
     """
     Creates a die with the possible results of 0 .. N-1 with probability according to the input
     :param args: The weights of the different values
@@ -1121,7 +1124,7 @@ def range2dice(*args):
     return new_dice
 
 
-def binary(chance):
+def binary(chance: float) -> dice:
     """
     Creates a die with results of 0 or 1
     :param chance: The chance to get 1
@@ -1136,7 +1139,7 @@ def binary(chance):
 # ~~~~~~~~~ Other Dice Methods ~~~~~~~~~
 
 
-def get_pos(dice_list, index_list=None):
+def get_pos(dice_list: list[dice | float | int], index_list: int | list[int] | None = None) -> dice | list[dice]:
     """
     Simulates the result of rolling multiple dice, sorting them, taking values after the sorting, and summing the dice
     :param dice_list: A list, where each item is a die or a number
@@ -1201,7 +1204,7 @@ def get_pos(dice_list, index_list=None):
         return new_dice
 
 
-def drop_pos(dice_list, index_list):
+def drop_pos(dice_list: list[dice | float | int], index_list: int | list[int]) -> dice:
     """
     Simulates the result of rolling multiple dice, sorting them, removing values after the sorting, and summing the dice
     :param dice_list: A list, where each item is a die or a number
@@ -1221,7 +1224,7 @@ def drop_pos(dice_list, index_list):
     return get_pos(dice_list, keep_index_list)
 
 
-def func(lambda_func, *args):
+def func(lambda_func: Callable[..., int | float | dice], *args) -> dice:
     """
     Executes a generic function on dice
     :param lambda_func: The function to execute
@@ -1284,7 +1287,13 @@ def func(lambda_func, *args):
         return new_dice
 
 
-def highest(*args):
+def dicefunc(lambda_func: Callable[..., int | float | dice]) -> Callable[..., int | float | dice]:
+    def inner(*args):
+        return func(lambda_func, *args)
+    return inner
+
+
+def highest(*args: dice | float | int) -> dice:
     """
     :param args: Dice and values
     :return: A new die, describing taking the highest value of the given dice and values
@@ -1317,7 +1326,7 @@ def highest(*args):
     return new_dice
 
 
-def lowest(*args):
+def lowest(*args: dice | float | int) -> dice:
     """
     :param args: Dice and values
     :return: A new die, describing taking the lowest value of the given dice and values
@@ -1350,7 +1359,7 @@ def lowest(*args):
     return new_dice
 
 
-def chain_compare(*args):
+def chain_compare(*args) -> dice:
     """
     Perform a chain comparison of dice
     :param args: Alternating sequence of dice (or numbers) and signs. Must start with a die and end with a die
@@ -1461,7 +1470,7 @@ def chain_compare(*args):
     return new_dice
 
 
-def count(dice_list, *args):
+def count(dice_list: list[dice], *args) -> dice:
     """
     Simulates rolling a collection of dice, and checking if it appears in the list.
     The value is based on the amount of times the roll appears in the list
@@ -1475,7 +1484,7 @@ def count(dice_list, *args):
 # ~~~~~~~~~ Plotting ~~~~~~~~~
 
 
-def print_summary(dice_list, DesiredPrints=None):
+def print_summary(dice_list: list[dice], DesiredPrints: int | list[int] | None = None) -> None:
     """
     Prints basic information on a collection of dice
     :param dice_list: A list of dice
@@ -1519,7 +1528,7 @@ def print_summary(dice_list, DesiredPrints=None):
         print(tabulate(text, headers='firstrow') + '\n')
 
 
-def plot_stats(dice_list, dynamic_vars=None, x_label='Value', title=None, y_lim=None):
+def plot_stats(dice_list: list[dice | Callable[..., dice]], dynamic_vars=None, x_label: str ='Value', title: str | None = None, y_lim=None) -> None:
     """
     Plot basic stats (normal [pdf], atmost [cdf] and atleast [1+pdf-cdf]) of a list of dice
     :param y_lim: Defines the y-limits of the plot.
@@ -1698,7 +1707,7 @@ def plot_stats(dice_list, dynamic_vars=None, x_label='Value', title=None, y_lim=
     plt.show()
 
 
-def plot_mean(dice_list, dynamic_vars, title=None, y_lim=None):
+def plot_mean(dice_list: list[dice | Callable[..., dice]], dynamic_vars, title: str | None = None, y_lim=None) -> None:
     """
     Plot the mean of a list of dice
     :param y_lim: Defines the y-limits of the plot.
@@ -1732,7 +1741,6 @@ def plot_mean(dice_list, dynamic_vars, title=None, y_lim=None):
     for dynamic_var in dynamic_vars:
         if len(dynamic_var) == 4:
             dynamic_var.append(1)
-
 
     # Add a field to d_ax that holds the maximum values of the y-lim
     d_ax.max_y_lim = None
