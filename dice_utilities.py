@@ -24,7 +24,7 @@ def force_cube(value: float | int | dice) -> dice:
     if isinstance(value, (float, int)):
         return dice.from_const(value)
     # Otherwise, throw an error
-    raise TypeError
+    raise TypeError("Input argument must be a number, or a dice object")
 
 
 def flatten(S):
@@ -475,10 +475,13 @@ def get_mean_and_var(obj):
     :return: A tuple, describing the mean and variance
     """
 
+    # Turn boolean into a number
+    if isinstance(obj, bool):
+        value = obj + 0
     if isinstance(obj, dice.dice):
         return obj.mean(), obj.var()
     if isinstance(obj, dice.fastdice):
         return obj.mean(), obj.var()
     if isinstance(obj, (float, int)):
         return obj, 0
-    raise TypeError
+    raise TypeError("Input argument must be a number, a dice object, or a fastdice object")

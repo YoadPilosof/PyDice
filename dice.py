@@ -22,7 +22,7 @@ class dice:
         """
 
         if not isinstance(other, str):
-            raise TypeError
+            raise TypeError("Name must be a string")
 
         self.name = other
         return self
@@ -33,7 +33,7 @@ class dice:
         """
 
         if not isinstance(other, str):
-            raise TypeError
+            raise TypeError("Name must be a string")
 
         self.name = other
         return self
@@ -43,8 +43,8 @@ class dice:
         Prints general info about the dice (mean and std), and prints a graph-like plot of the pdf of the dice
         """
 
-        if not isinstance(precision, int):
-            raise TypeError
+        if not isinstance(precision, int) or precision < 0:
+            raise TypeError("precision must be a non-negative integer")
 
         dice_utilities.print_data(self, self.pdf, self.name, precision)
 
@@ -53,8 +53,8 @@ class dice:
         Prints general info about the dice (mean and std), and prints a graph-like plot about the chance to get at least a value
         """
 
-        if not isinstance(precision, int):
-            raise TypeError
+        if not isinstance(precision, int) or precision < 0:
+            raise TypeError("precision must be a non-negative integer")
 
         dice_utilities.print_data(self, self.at_least(), self.name, precision)
 
@@ -63,8 +63,8 @@ class dice:
         Prints general info about the dice (mean and std), and prints a graph-like plot about the chance to get at most a value
         """
 
-        if not isinstance(precision, int):
-            raise TypeError
+        if not isinstance(precision, int) or precision < 0:
+            raise TypeError("precision must be a non-negative integer")
 
         dice_utilities.print_data(self, self.at_most(), self.name, precision)
 
@@ -138,8 +138,8 @@ class dice:
         :return: The simulates roll(s). If a value was given to n, returns a list, otherwise returns a value
         """
 
-        if not isinstance(n, str):
-            raise TypeError
+        if not isinstance(n, int) or n < 0:
+            raise TypeError("n must be zero (to roll a single die) or a positive integer (to roll a list)")
 
         # The possible outcomes of the die
         rolls = list(self.pdf.keys())
@@ -313,15 +313,15 @@ class dice:
         # Return the new die
         return new_dice
 
-    def __pow__(self, power: float | int, modulo=None) -> dice:
+    def __pow__(self, power: int, modulo=None) -> dice:
         """
         Creates a die describing rolling the same die multiple times and taking the sum
         :param power: How many dice to roll
         :return: A new die, with statistics according to the sum of the die
         """
 
-        if not isinstance(power, (float, int)):
-            raise TypeError
+        if not isinstance(power, int) or power < 0:
+            raise TypeError("the power operator (rolling multiple dice) is only supported for non-negative integers")
 
         # Roll a die zero times, so the result is always 0
         if power == 0:
@@ -352,35 +352,35 @@ class dice:
     def __radd__(self, other: float | int) -> dice:
 
         if not isinstance(other, (float, int)):
-            raise TypeError
+            raise TypeError("Addition can only be done between a die and another die / number")
 
         return self + other
 
     def __rsub__(self, other: float | int) -> dice:
 
         if not isinstance(other, (float, int)):
-            raise TypeError
+            raise TypeError("Subtraction can only be done between a die and another die / number")
 
         return (-self) + other
 
     def __rmul__(self, other: float | int) -> dice:
 
         if not isinstance(other, (float, int)):
-            raise TypeError
+            raise TypeError("Multiplication can only be done between a die and another die / number")
 
         return self * other
 
     def __rtruediv__(self, other: float | int) -> dice:
 
         if not isinstance(other, (float, int)):
-            raise TypeError
+            raise TypeError("Division can only be done between a die and another die / number")
 
         return from_const(other) / self
 
     def __rfloordiv__(self, other: float | int) -> dice:
 
         if not isinstance(other, (float, int)):
-            raise TypeError
+            raise TypeError("Division can only be done between a die and another die / number")
 
         return from_const(other) // self
 
@@ -391,8 +391,8 @@ class dice:
         :return: A new die, describing rolling the current die n times, and taking the highest result
         """
 
-        if not isinstance(n, int):
-            raise TypeError
+        if not isinstance(n, int) or n < 1:
+            raise TypeError("n must be a positive integer")
 
         if n == 1:
             return self
@@ -403,14 +403,13 @@ class dice:
             else:
                 return highest(recursive_die, recursive_die, self)
 
-
     def dis(self, n: int = 2) -> dice:
         """
         :return: A new die, describing rolling the current die n times, and taking the lowest result
         """
 
         if not isinstance(n, int):
-            raise TypeError
+            raise TypeError("n must be a positive integer")
 
         if n == 1:
             return self
@@ -429,8 +428,10 @@ class dice:
         :return: A new die
         """
 
-        if not (isinstance(explode_on, (float, int) or explode_on is None) and isinstance(max_depth, int)):
-            raise TypeError
+        if not isinstance(explode_on, (float, int) or explode_on is None):
+            raise TypeError("explode_on must be a number or None")
+        if not isinstance(max_depth, int) or max_depth < 0:
+            raise TypeError("max_depth must be a non-negative integer")
 
         if explode_on is None:
             explode_on = self.max()
@@ -501,8 +502,8 @@ class dice:
         :return: The chance to need N rolls until a non-zero value is rolled
         """
 
-        if not isinstance(max_depth, int):
-            raise TypeError
+        if not isinstance(max_depth, int) or max_depth < 1:
+            raise TypeError("max_depth must be a positive integer")
 
         q = self.pdf[0]
         p = 1 - q
@@ -646,7 +647,7 @@ class dice:
         """
 
         if len(args) == 0:
-            raise TypeError
+            raise TypeError("Missing input arguments")
 
         if len(args) == 1:
             if isinstance(args[0], list):
@@ -654,12 +655,12 @@ class dice:
             elif isinstance(args[0], (float, int)):
                 edges = [args[0]]
             else:
-                raise TypeError
+                raise TypeError("Input arguments must numbers or a single list")
         else:
             edges = list(args)
 
         if sorted(edges) != edges:
-            raise TypeError
+            raise TypeError("Given bin edges must be in ascending order")
 
         edges += [float('inf')]
 
@@ -694,7 +695,7 @@ class dice:
         elif isinstance(pos_index, int):
             pos_index = pos_index % num_dice
         else:
-            raise TypeError
+            raise TypeError("pos_index must be an integer or a list of integers")
 
         # If pos_index is a list, calculate the PDF by looping over all ordered combinations
         if isinstance(pos_index, list):
@@ -1205,9 +1206,9 @@ class fastdice:
     def to_dice(self, step: float | int = 1, span: float | int = 5) -> dice:
 
         if not isinstance(step, (float, int)):
-            raise TypeError
+            raise TypeError("step must be a number")
         if not isinstance(span, (float, int)):
-            raise TypeError
+            raise TypeError("span must be a number")
 
         new_dice = dice()
         m = self.mean()
@@ -1271,7 +1272,7 @@ class fastdice:
         """
 
         if not isinstance(power, (float, int)):
-            raise TypeError
+            raise TypeError("the power operator (rolling multiple dice) is only supported for non-negative integers")
 
         self._mean *= power
         self._var *= power
@@ -1339,7 +1340,7 @@ class fastdice:
                 total_chance += current_chance * other_chance
             return binary(total_chance)
 
-        raise TypeError
+        raise TypeError("Comparison operators are only compatible between numbers, dice objects and fastdice objects")
 
     def __ge__(self, other: dice | float | int) -> dice:
         """
@@ -1363,8 +1364,10 @@ def d(size: int, n: int = 1) -> dice:
     :return: The new die
     """
 
-    if not isinstance(n, int):
-        raise TypeError
+    if not isinstance(n, int) or n < 1:
+        raise TypeError("n must be a positive integer")
+    if not isinstance(size, int) or size < 1:
+        raise TypeError("size must be a positive integer")
 
     new_dice = dice()
     if n == 1:
@@ -1411,7 +1414,7 @@ def from_const(val: int | float) -> dice:
     """
 
     if not isinstance(val, (float, int)):
-        raise TypeError
+        raise TypeError("Val must be a number")
 
     new_dice = dice()
     new_dice.pdf[val] = 1
@@ -1485,8 +1488,8 @@ def binary(chance: float) -> dice:
     :return: The new die
     """
 
-    if not isinstance(chance, float):
-        raise TypeError
+    if not isinstance(chance, float) or not (0 < chance < 1):
+        raise TypeError("chance must be a number between 0 and 1")
 
     new_dice = dice()
     new_dice.pdf[0] = 1 - chance
@@ -1922,6 +1925,12 @@ def plot_stats(dice_list: list[dice | Callable[..., dice]], dynamic_vars=None, x
     for dynamic_var in dynamic_vars:
         if len(dynamic_var) == 4:
             dynamic_var.append(1)
+        if len(dynamic_var) != 5 or not (
+                isinstance(dynamic_var[0], str) and isinstance(dynamic_var[1], (float, int)) and
+                isinstance(dynamic_var[2], (float, int)) and isinstance(dynamic_var[3], (float, int)) and
+                isinstance(dynamic_var[4], (float, int))):
+            raise TypeError("dynamic_var must be of the form "
+                            "[name, minimal value, starting value, maximal value, <step size>]")
 
     # If only one die was given, and not as a list, we turn it into a list of length 1
     if not isinstance(dice_list, list):
@@ -2102,6 +2111,12 @@ def plot_mean(dice_list: list[dice | Callable[..., dice]], dynamic_vars, title: 
     for dynamic_var in dynamic_vars:
         if len(dynamic_var) == 4:
             dynamic_var.append(1)
+        if len(dynamic_var) != 5 or not (
+                isinstance(dynamic_var[0], str) and isinstance(dynamic_var[1], (float, int)) and
+                isinstance(dynamic_var[2], (float, int)) and isinstance(dynamic_var[3], (float, int)) and
+                isinstance(dynamic_var[4], (float, int))):
+            raise TypeError("dynamic_var must be of the form "
+                            "[name, minimal value, starting value, maximal value, <step size>]")
 
     # Add a field to d_ax that holds the maximum values of the y-lim
     d_ax.max_y_lim = None
