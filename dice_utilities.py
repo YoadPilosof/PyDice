@@ -1,5 +1,6 @@
-import math
+from __future__ import annotations
 
+import math
 import numpy as np
 import copy
 import tabulate
@@ -7,7 +8,7 @@ import tabulate
 import dice
 
 
-def force_cube(value):
+def force_cube(value: float | int | dice) -> dice:
     """
     Force a variable to be a die object
     :param value: The variable to force
@@ -19,9 +20,11 @@ def force_cube(value):
     # If value is already a die, simply return it
     if isinstance(value, dice.dice):
         return value
-    # If value isn't a die, create a die with only one outcome (value)
-    else:
+    # If value is an int or float, create a die with only one value
+    if isinstance(value, (float, int)):
         return dice.from_const(value)
+    # Otherwise, throw an error
+    raise TypeError
 
 
 def flatten(S):
@@ -463,3 +466,19 @@ def generate_all_ordered_lists(die, N, reverse=False):
     # by calculating the probability of each combination (with permutation)
     # and by removing unwanted elements in the tuples
     return [(comb_tuple[0] * total_combs / comb_tuple[2], comb_tuple[1]) for comb_tuple in aux_output]
+
+
+def get_mean_and_var(obj):
+    """
+    Returns the mean and variance of an object (dice, fastdice, number)
+    :param obj: The object to test
+    :return: A tuple, describing the mean and variance
+    """
+
+    if isinstance(obj, dice.dice):
+        return obj.mean(), obj.var()
+    if isinstance(obj, dice.fastdice):
+        return obj.mean(), obj.var()
+    if isinstance(obj, (float, int)):
+        return obj, 0
+    raise TypeError

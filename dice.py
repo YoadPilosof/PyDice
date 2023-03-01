@@ -20,6 +20,10 @@ class dice:
         """
         Name a die
         """
+
+        if not isinstance(other, str):
+            raise TypeError
+
         self.name = other
         return self
 
@@ -27,6 +31,10 @@ class dice:
         """
         Name a die
         """
+
+        if not isinstance(other, str):
+            raise TypeError
+
         self.name = other
         return self
 
@@ -35,6 +43,9 @@ class dice:
         Prints general info about the dice (mean and std), and prints a graph-like plot of the pdf of the dice
         """
 
+        if not isinstance(precision, int):
+            raise TypeError
+
         dice_utilities.print_data(self, self.pdf, self.name, precision)
 
     def print_at_least(self, precision: int = 2) -> None:
@@ -42,12 +53,18 @@ class dice:
         Prints general info about the dice (mean and std), and prints a graph-like plot about the chance to get at least a value
         """
 
+        if not isinstance(precision, int):
+            raise TypeError
+
         dice_utilities.print_data(self, self.at_least(), self.name, precision)
 
     def print_at_most(self, precision: int = 2) -> None:
         """
         Prints general info about the dice (mean and std), and prints a graph-like plot about the chance to get at most a value
         """
+
+        if not isinstance(precision, int):
+            raise TypeError
 
         dice_utilities.print_data(self, self.at_most(), self.name, precision)
 
@@ -87,13 +104,20 @@ class dice:
         :return: Returns the standard deviation of the die
         """
 
+        return math.sqrt(self.var())
+
+    def var(self) -> float:
+        """
+        :return: Returns the standard deviation of the die
+        """
+
         # Calculate the variance, and later take the square root
         var = 0
         # First find the mean, as it is used in the definition of the variance
         m = self.mean()
         for roll, chance in self.pdf.items():
             var += ((roll - m) ** 2) * chance
-        return math.sqrt(var)
+        return var
 
     def max(self) -> float:
         """
@@ -113,6 +137,10 @@ class dice:
         :param n: How many dice rolls to simulate
         :return: The simulates roll(s). If a value was given to n, returns a list, otherwise returns a value
         """
+
+        if not isinstance(n, str):
+            raise TypeError
+
         # The possible outcomes of the die
         rolls = list(self.pdf.keys())
         # The probability of each outcome
@@ -136,6 +164,9 @@ class dice:
         """
         return sum(self.pdf.values())
 
+    def to_fast(self) -> fastdice:
+        return fastdice(self.mean(), self.var()) << self.name
+
     # ~~~~~~~~~ Overloaded Binary and Unary Operations ~~~~~~~~~
 
     def __add__(self, other: dice | float | int) -> dice:
@@ -145,7 +176,6 @@ class dice:
         :return: A new die, with statistics according to the sum of the two dice
         """
 
-        # Force the <other> die to be a die object
         other = dice_utilities.force_cube(other)
 
         new_dice = dice()
@@ -170,7 +200,6 @@ class dice:
         :return: A new die, with statistics according to the difference of the two dice
         """
 
-        # Force the <other> die to be a die object
         other = dice_utilities.force_cube(other)
 
         new_dice = dice()
@@ -195,7 +224,6 @@ class dice:
         :return: A new die, with statistics according to the product of the two dice
         """
 
-        # Force the <other> die to be a die object
         other = dice_utilities.force_cube(other)
 
         new_dice = dice()
@@ -220,7 +248,6 @@ class dice:
         :return: A new die, with statistics according to the division of the two dice
         """
 
-        # Force the <other> die to be a die object
         other = dice_utilities.force_cube(other)
 
         new_dice = dice()
@@ -245,7 +272,6 @@ class dice:
         :return: A new die, with statistics according to the modulus of the two dice
         """
 
-        # Force the <other> die to be a die object
         other = dice_utilities.force_cube(other)
 
         new_dice = dice()
@@ -270,7 +296,6 @@ class dice:
         :return: A new die, with statistics according to the division of the two dice
         """
 
-        # Force the <other> die to be a die object
         other = dice_utilities.force_cube(other)
 
         new_dice = dice()
@@ -288,12 +313,16 @@ class dice:
         # Return the new die
         return new_dice
 
-    def __pow__(self, power: dice | float | int, modulo=None) -> dice:
+    def __pow__(self, power: float | int, modulo=None) -> dice:
         """
         Creates a die describing rolling the same die multiple times and taking the sum
         :param power: How many dice to roll
         :return: A new die, with statistics according to the sum of the die
         """
+
+        if not isinstance(power, (float, int)):
+            raise TypeError
+
         # Roll a die zero times, so the result is always 0
         if power == 0:
             return zero()
@@ -319,12 +348,53 @@ class dice:
             new_dice.pdf[-roll] = chance
         return new_dice
 
+    # ~~~~~~~~~ Overloaded Right side Operations ~~~~~~~~~
+
+    def __radd__(self, other: float | int) -> dice:
+
+        if not isinstance(other, (float, int)):
+            raise TypeError
+
+        return self + other
+
+    def __rsub__(self, other: float | int) -> dice:
+
+        if not isinstance(other, (float, int)):
+            raise TypeError
+
+        return (-self) + other
+
+    def __rmul__(self, other: float | int) -> dice:
+
+        if not isinstance(other, (float, int)):
+            raise TypeError
+
+        return self * other
+
+    def __rtruediv__(self, other: float | int) -> dice:
+
+        if not isinstance(other, (float, int)):
+            raise TypeError
+
+        return from_const(other) / self
+
+    def __rfloordiv__(self, other: float | int) -> dice:
+
+        if not isinstance(other, (float, int)):
+            raise TypeError
+
+        return from_const(other) // self
+
     # ~~~~~~~~~ Common die manipulation ~~~~~~~~~
 
     def adv(self, n: int = 2) -> dice:
         """
         :return: A new die, describing rolling the current die n times, and taking the highest result
         """
+
+        if not isinstance(n, int):
+            raise TypeError
+
         if n == 1:
             return self
         else:
@@ -334,6 +404,10 @@ class dice:
         """
         :return: A new die, describing rolling the current die n times, and taking the lowest result
         """
+
+        if not isinstance(n, int):
+            raise TypeError
+
         if n == 1:
             return self
         else:
@@ -346,6 +420,9 @@ class dice:
         :param max_depth: Maximum depth of the simulation. Default is 2
         :return: A new die
         """
+
+        if not (isinstance(explode_on, (float, int) or explode_on is None) and isinstance(max_depth, int)):
+            raise TypeError
 
         if explode_on is None:
             explode_on = self.max()
@@ -415,6 +492,10 @@ class dice:
         :param max_depth: Maximum simulation depth, after max_depth rolls, we assume the next one is non-zero
         :return: The chance to need N rolls until a non-zero value is rolled
         """
+
+        if not isinstance(max_depth, int):
+            raise TypeError
+
         q = self.pdf[0]
         p = 1 - q
         new_die = dice()
@@ -516,6 +597,9 @@ class dice:
         :return: The new die
         """
 
+        if default_value is not None:
+            default_value = dice_utilities.force_cube(default_value)
+
         new_dice = dice()
         # Loop over all the values the self die can roll
         for roll, chance in self.pdf.items():
@@ -535,12 +619,56 @@ class dice:
                     # raise an error
                     raise Exception('Value of ' + str(roll) + ' is not described by the dictionary')
                 else:
-                    new_value = default_value
-                    # Transform the new roll into a die if it is not already
-                    new_value = dice_utilities.force_cube(new_value)
-                    for new_roll, new_chance in new_value.pdf.items():
+                    for new_roll, new_chance in default_value.pdf.items():
                         if not (new_roll in new_dice.pdf):
                             new_dice.pdf[new_roll] = 0
+
+        return new_dice
+
+    def ranges(self, *args, upper: bool = True) -> dice:
+        """
+        Gives a value according to the range, such that:
+        ( -∞, args[0] ] → 0, ( args[0], args[1] ] → 1, ⋯ ( args[N-1], +∞ ) → N
+        :param args: Comparison bins
+        :param upper: If set to true, values that are exactly on an edge, will be mapped to the upper bin,
+                      i.e., the bins are left-closed right-open [a, b).
+                      If set to false,values that are exactly on an edge, will be mapped to the lower bin,
+                      i.e., the bins are right-closed left-open (a, b].
+        :return: A new die, with values 0 ⋯ N, describing the chance to fall within each bin
+        """
+
+        if len(args) == 0:
+            raise TypeError
+
+        if len(args) == 1:
+            if isinstance(args[0], list):
+                edges = args[0]
+            elif isinstance(args[0], (float, int)):
+                edges = [args[0]]
+            else:
+                raise TypeError
+        else:
+            edges = list(args)
+
+        if sorted(edges) != edges:
+            raise TypeError
+
+        edges += [float('inf')]
+
+        new_dice = dice()
+
+        current_edge_idx = 0
+        for self_roll, self_chance in sorted(self.pdf.items()):
+            if upper:
+                while self_roll >= edges[current_edge_idx]:
+                    current_edge_idx += 1
+            else:
+                while self_roll > edges[current_edge_idx]:
+                    current_edge_idx += 1
+
+            if not (current_edge_idx in new_dice.pdf):
+                new_dice.pdf[current_edge_idx] = 0
+            new_dice.pdf[current_edge_idx] += self_chance
 
         return new_dice
 
@@ -555,8 +683,10 @@ class dice:
         # Transform the pos_index so negative values are counted from the end of the list
         if isinstance(pos_index, list):
             pos_index = [index % num_dice for index in pos_index]
-        else:
+        elif isinstance(pos_index, int):
             pos_index = pos_index % num_dice
+        else:
+            raise TypeError
 
         # If pos_index is a list, calculate the PDF by looping over all ordered combinations
         if isinstance(pos_index, list):
@@ -696,6 +826,7 @@ class dice:
         :param other: The second die to compare <self> to. Can be a number
         :return: The new boolean die
         """
+
         other = dice_utilities.force_cube(other)
 
         # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
@@ -719,6 +850,7 @@ class dice:
         :param other: The second die to compare <self> to. Can be a number
         :return: The new boolean die
         """
+
         other = dice_utilities.force_cube(other)
 
         # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
@@ -742,6 +874,7 @@ class dice:
         :param other: The second die to compare <self> to. Can be a number
         :return: The new boolean die
         """
+
         other = dice_utilities.force_cube(other)
 
         # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
@@ -765,6 +898,7 @@ class dice:
         :param other: The second die to compare <self> to. Can be a number
         :return: The new boolean die
         """
+
         other = dice_utilities.force_cube(other)
 
         # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
@@ -788,6 +922,7 @@ class dice:
         :param other: The second die to compare <self> to. Can be a number
         :return: The new boolean die
         """
+
         other = dice_utilities.force_cube(other)
 
         # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
@@ -811,6 +946,7 @@ class dice:
         :param other: The second die to compare <self> to. Can be a number
         :return: The new boolean die
         """
+
         other = dice_utilities.force_cube(other)
 
         # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
@@ -836,6 +972,7 @@ class dice:
         :param other: The second die
         :return: The new die
         """
+
         other = dice_utilities.force_cube(other)
 
         # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
@@ -863,6 +1000,7 @@ class dice:
         :param other: The second die
         :return: The new die
         """
+
         other = dice_utilities.force_cube(other)
 
         # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
@@ -890,6 +1028,7 @@ class dice:
         :param other: The second die
         :return: The new die
         """
+
         other = dice_utilities.force_cube(other)
 
         # Since we return a boolean die, we know it can only roll 0 [false] or 1 [true]
@@ -959,7 +1098,7 @@ class dice:
 
         return new_dice
 
-    def reroll_on(self, match_list: float | int | list[float | int], max_depth: int =1) -> dice:
+    def reroll_on(self, match_list: float | int | list[float | int], max_depth: int = 1) -> dice:
         """
         Simulates rolling a die, and rerolling the dice if the value is in match_list
         :param match_list: A number or a list to compare. Can be a nested list
@@ -1006,6 +1145,205 @@ class dice:
                 raise Exception('Invalid comparison operator')
 
 
+class fastdice:
+    def __init__(self, mean: float | int = 0, var: float | int = 0):
+        self._mean = mean
+        self._var = var
+        self.name = "Unnamed Die"
+
+    def __rshift__(self, other: str) -> fastdice:
+        """
+        Name a die
+        """
+        self.name = other
+        return self
+
+    def __lshift__(self, other: str) -> fastdice:
+        """
+        Name a die
+        """
+        self.name = other
+        return self
+
+    def print(self, precision: int = 2) -> None:
+        """
+        Prints information about the dice
+        """
+
+        txt_format = "{0}: {1:." + str(precision) + "f} ± {2:." + str(precision) + "f}"
+        print(txt_format.format(self.name, self._mean, math.sqrt(self._var)))
+
+    def mean(self) -> float:
+        """
+        :return: Returns the mean of the die
+        """
+
+        return self._mean
+
+    def std(self) -> float:
+        """
+        :return: Returns the standard deviation of the die
+        """
+
+        return math.sqrt(self._var)
+
+    def var(self) -> float:
+        """
+        :return: Returns the variance of the die
+        """
+
+        return self._var
+
+    def to_dice(self, step: float | int = 1, span: float | int = 5) -> dice:
+
+        if not isinstance(step, (float, int)):
+            raise TypeError
+        if not isinstance(span, (float, int)):
+            raise TypeError
+
+        new_dice = dice()
+        m = self.mean()
+        v = self.var()
+        s = self.std()
+
+        left_idx = math.floor((m - s*span)/step)
+        right_idx = math.ceil((m + s*span)/step) + 1 # Since range is exclusive for stop value
+
+        for val in range(left_idx, right_idx):
+            new_dice.pdf[val*step] = step/(s*math.sqrt(2*math.pi)) * math.exp(-(val*step - m)**2 / (2 * v))
+
+        n = 1 / new_dice.norm()
+
+        for roll in new_dice.pdf.keys():
+            new_dice.pdf[roll] *= n
+
+        return new_dice << self.name
+
+    # ~~~~~~~~~ Overloaded Binary and Unary Operations ~~~~~~~~~
+
+    def __add__(self, other: fastdice | dice | float | int) -> fastdice:
+        """
+        Creates a die describing the sum of two dice
+        :param other: The second die to add. Can be a number
+        :return: A new die, with statistics according to the sum of the two dice
+        """
+
+        o_mean, o_var = dice_utilities.get_mean_and_var(other)
+        new_dice = fastdice(self.mean() + o_mean, self.var() + o_var)
+        return new_dice
+
+    def __sub__(self, other: fastdice | dice | float | int) -> fastdice:
+        """
+        Creates a die describing the difference of two dice
+        :param other: The second die to subtract. Can be a number
+        :return: A new die, with statistics according to the difference of the two dice
+        """
+
+        o_mean, o_var = dice_utilities.get_mean_and_var(other)
+        new_dice = fastdice(self.mean() - o_mean, self.var() + o_var)
+        return new_dice
+
+    def __mul__(self, other: fastdice | dice | float | int) -> fastdice:
+        """
+        Creates a die describing the product of two dice
+        :param other: The second die to multiply. Can be a number
+        :return: A new die, with statistics according to the product of the two dice
+        """
+
+        o_mean, o_var = dice_utilities.get_mean_and_var(other)
+        new_var = (self.mean() ** 2 + self.var()) * (o_mean ** 2 + o_var) - (self.mean() * o_mean) ** 2
+        new_dice = fastdice(self.mean() * o_mean, new_var)
+        return new_dice
+
+    def __pow__(self, power: float | int, modulo=None) -> fastdice:
+        """
+        Creates a die describing rolling the same die multiple times and taking the sum
+        :param power: How many dice to roll
+        :return: A new die, with statistics according to the sum of the die
+        """
+
+        if not isinstance(power, (float, int)):
+            raise TypeError
+
+        self._mean *= power
+        self._var *= power
+        return self
+
+    def __neg__(self) -> fastdice:
+        """
+        :return: Flips the sign of the values of the dice
+        """
+        self._mean = -self._mean
+        return self
+
+    # ~~~~~~~~~ Overloaded Right side Operations ~~~~~~~~~
+
+    def __radd__(self, other: dice | float | int) -> fastdice:
+        return self + other
+
+    def __rsub__(self, other: dice | float | int) -> fastdice:
+        return (-self) + other
+
+    def __rmul__(self, other: dice | float | int) -> fastdice:
+        return self * other
+
+    # ~~~~~~~~~ Overloaded Comparative Operations ~~~~~~~~~
+
+    def __lt__(self, other: fastdice | dice | float | int) -> dice:
+        """
+        Creates a boolean die (can roll 0 [false] or 1 [true])
+        The new die describes if <self> is less than <other>
+        :param other: The second die to compare <self> to. Can be a number
+        :return: The new boolean die
+        """
+
+        return (self > other).__invert__()
+
+    def __le__(self, other: dice | float | int) -> dice:
+        """
+        Creates a boolean die (can roll 0 [false] or 1 [true])
+        The new die describes if <self> is less than or equal to <other>
+        :param other: The second die to compare <self> to. Can be a number
+        :return: The new boolean die
+        """
+
+        return (self > other).__invert__()
+
+    def __gt__(self, other: dice | float | int) -> dice:
+        """
+        Creates a boolean die (can roll 0 [false] or 1 [true])
+        The new die describes if <self> is greater than <other>
+        :param other: The second die to compare <self> to. Can be a number
+        :return: The new boolean die
+        """
+
+        if isinstance(other, int) or isinstance(other, float):
+            chance = math.erfc((other - self.mean()) / (math.sqrt(2) * self.std())) / 2
+            return binary(chance)
+
+        if isinstance(other, fastdice):
+            return self - other < 0
+
+        if isinstance(other, dice):
+            total_chance = 0
+            for other_roll, other_chance in other.pdf.items():
+                current_chance = math.erfc((other_roll - self.mean()) / (math.sqrt(2) * self.std())) / 2
+                total_chance += current_chance * other_chance
+            return binary(total_chance)
+
+        raise TypeError
+
+    def __ge__(self, other: dice | float | int) -> dice:
+        """
+        Creates a boolean die (can roll 0 [false] or 1 [true])
+        The new die describes if <self> is greater than or equal to <other>
+        :param other: The second die to compare <self> to. Can be a number
+        :return: The new boolean die
+        """
+
+        return self > other
+
+
 # ~~~~~~~~~ Custom Dice Constructors ~~~~~~~~~
 
 
@@ -1016,6 +1354,10 @@ def d(size: int, n: int = 1) -> dice:
     :param n: How many dice are rolled
     :return: The new die
     """
+
+    if not isinstance(n, int):
+        raise TypeError
+
     new_dice = dice()
     if n == 1:
         for i in range(size):
@@ -1042,13 +1384,13 @@ def standard_dice() -> tuple[dice, dice, dice, dice, dice, dice, dice]:
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
     :return: The basic 7 dice
     """
-    d4 = d(4)
-    d6 = d(6)
-    d8 = d(8)
-    d10 = d(10)
-    d12 = d(12)
-    d20 = d(20)
-    d100 = d(100)
+    d4 = d(4) << "d4"
+    d6 = d(6) << "d6"
+    d8 = d(8) << "d8"
+    d10 = d(10) << "d10"
+    d12 = d(12) << "d12"
+    d20 = d(20) << "d20"
+    d100 = d(100) << "d100"
 
     return d4, d6, d8, d10, d12, d20, d100
 
@@ -1059,6 +1401,10 @@ def from_const(val: int | float) -> dice:
     :param val: The value of the die
     :return: The new die
     """
+
+    if not isinstance(val, (float, int)):
+        raise TypeError
+
     new_dice = dice()
     new_dice.pdf[val] = 1
     return new_dice
@@ -1130,6 +1476,10 @@ def binary(chance: float) -> dice:
     :param chance: The chance to get 1
     :return: The new die
     """
+
+    if not isinstance(chance, float):
+        raise TypeError
+
     new_dice = dice()
     new_dice.pdf[0] = 1 - chance
     new_dice.pdf[1] = chance
@@ -1224,13 +1574,21 @@ def drop_pos(dice_list: list[dice | float | int], index_list: int | list[int]) -
     return get_pos(dice_list, keep_index_list)
 
 
-def func(lambda_func: Callable[..., int | float | dice], *args) -> dice:
+def func(lambda_func: Callable[..., int | float | dice], *args, **kwargs) -> tuple[dice, ...] | Callable[
+    ..., int | float | dice]:
     """
     Executes a generic function on dice
     :param lambda_func: The function to execute
     :param args: The dice and values to pass to the function
     :return: A new die, according to the function
     """
+
+    # If args and kwargs are empty, treat this call as a decorator
+    if not args and not kwargs:
+        def inner(*inner_args, **inner_kwargs):
+            return func(lambda_func, *inner_args, **inner_kwargs)
+
+        return inner
 
     # Turn the tuple to a list
     dice_list = list(args)
@@ -1273,7 +1631,7 @@ def func(lambda_func: Callable[..., int | float | dice], *args) -> dice:
         new_dice = dice()
         for comb in all_combs:
             # For each combination, take the values according to the given function
-            value = lambda_func(*comb[1])
+            value = lambda_func(*comb[1], **kwargs)
             value = dice_utilities.force_cube(value)
 
             comb_chance = comb[0]
@@ -1285,12 +1643,6 @@ def func(lambda_func: Callable[..., int | float | dice], *args) -> dice:
                 new_dice.pdf[roll] += chance * comb_chance
 
         return new_dice
-
-
-def dicefunc(lambda_func: Callable[..., int | float | dice]) -> Callable[..., int | float | dice]:
-    def inner(*args):
-        return func(lambda_func, *args)
-    return inner
 
 
 def highest(*args: dice | float | int) -> dice:
@@ -1306,7 +1658,7 @@ def highest(*args: dice | float | int) -> dice:
         # If we are only given one argument, and it is a die or a number, we have reached the recursion stop case
         # The highest value of one argument, is the argument, so we simply return it
         else:
-            return args[0]
+            return dice_utilities.force_cube(args[0])
 
     # We recursively call the 'highest' function
     # We split the input tuple in 2, and call the 'highest' function on each half
@@ -1339,7 +1691,7 @@ def lowest(*args: dice | float | int) -> dice:
         # If we are only given one argument, and it is a die or a number, we have reached the recursion stop case
         # The lowest value of one argument, is the argument, so we simply return it
         else:
-            return args[0]
+            return dice_utilities.force_cube(args[0])
 
     # We recursively call the 'lowest' function
     # We split the input tuple in 2, and call the 'lowest' function on each half
@@ -1484,24 +1836,24 @@ def count(dice_list: list[dice], *args) -> dice:
 # ~~~~~~~~~ Plotting ~~~~~~~~~
 
 
-def print_summary(dice_list: list[dice], DesiredPrints: int | list[int] | None = None) -> None:
+def print_summary(dice_list: list[dice], desired_prints: int | list[int] | None = None) -> None:
     """
     Prints basic information on a collection of dice
     :param dice_list: A list of dice
-    :param DesiredPrints: Specifies what information to print. Format as a list.
-                          If the list has any of these value, it will print:
+    :param desired_prints: Specifies what information to print. Format as a list.
+                           If the list has any of these value, it will print:
                                 0 - Mean
                                 1 - Deviation
                                 2 - Maximum
                                 3 - Minimum
-                          By default, the function prints all info
+                           By default, the function prints all info
     """
 
-    if DesiredPrints is None:
-        DesiredPrints = [0, 1, 2, 3]
+    if desired_prints is None:
+        desired_prints = [0, 1, 2, 3]
 
-    if not isinstance(DesiredPrints, list):
-        DesiredPrints = [DesiredPrints]
+    if not isinstance(desired_prints, list):
+        desired_prints = [desired_prints]
 
     max_pipes = 150
     filled_char = '█'
@@ -1518,7 +1870,7 @@ def print_summary(dice_list: list[dice], DesiredPrints: int | list[int] | None =
 
     max_val = max(max_list)
 
-    for j in DesiredPrints:
+    for j in desired_prints:
         header_text = ['Output', '#', string_list[j]]
         text = [header_text]
         for i in range(len(lists_list[j])):
@@ -1528,7 +1880,8 @@ def print_summary(dice_list: list[dice], DesiredPrints: int | list[int] | None =
         print(tabulate(text, headers='firstrow') + '\n')
 
 
-def plot_stats(dice_list: list[dice | Callable[..., dice]], dynamic_vars=None, x_label: str ='Value', title: str | None = None, y_lim=None) -> None:
+def plot_stats(dice_list: list[dice | Callable[..., dice]], dynamic_vars=None, x_label: str = 'Value',
+               title: str | None = None, y_lim=None) -> None:
     """
     Plot basic stats (normal [pdf], atmost [cdf] and atleast [1+pdf-cdf]) of a list of dice
     :param y_lim: Defines the y-limits of the plot.

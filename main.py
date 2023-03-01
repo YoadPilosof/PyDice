@@ -286,7 +286,7 @@ def class_comparison():
                    y_lim='max')
 
 
-def acquire_funds(pc = "ori", prof=2, type = "safe"):
+def acquire_funds(pc="ori", prof=2, type="safe"):
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
 
     # Ori
@@ -315,9 +315,9 @@ def acquire_funds(pc = "ori", prof=2, type = "safe"):
                              (d20 + persuasion > (d10 ** 2)) + \
                              (d20 + history > (d10 ** 2))
 
-    successes_take_a_risk  = (d20 + insight > (d10 ** 2 + 5)) + \
-                             (d20 + deception > (d10 ** 2 + 5)) + \
-                             (d20 + intimidation > (d10 ** 2 + 5))
+    successes_take_a_risk = (d20 + insight > (d10 ** 2 + 5)) + \
+                            (d20 + deception > (d10 ** 2 + 5)) + \
+                            (d20 + intimidation > (d10 ** 2 + 5))
 
     play_it_safe = successes_play_it_safe.switch(+0.5, +1, +1.25, +1.5) - 1 << "Play it Safe"
     take_a_risk = successes_take_a_risk.switch(-1, +0.5, +1.5, +2) - 1 << "Take a Risk"
@@ -332,8 +332,8 @@ def acquire_funds(pc = "ori", prof=2, type = "safe"):
 
 def upgrade_weapons_v2(upgrades, ac, roll, mod, pb, extra_dmg=0):
     UpgradeNamesList = ['Balanced', 'Wounding', 'Critical', 'Destroying', 'Brutal', 'Superior',
-                    'Reliable', 'Gambling - Balanced', 'Gambling - Wounding', 'Hasty',
-                    'Grazing']
+                        'Reliable', 'Gambling - Balanced', 'Gambling - Wounding', 'Hasty',
+                        'Grazing']
     UpgradeCostsList = [200, 350, 500, 750, 1000, 1500, 2000, 3000, 4500, 6000, 8000, 10000]
 
     Upgrades = [UpgradeNamesList[i] for i in range(len(UpgradeNamesList)) if upgrades[i]]
@@ -358,7 +358,7 @@ def upgrade_weapons_v2(upgrades, ac, roll, mod, pb, extra_dmg=0):
         crit_thresh -= 1
 
     if 'Destroying' in Upgrades:
-        extra_crit_dmg = d6**2
+        extra_crit_dmg = d6 ** 2
 
     if 'Superior' in Upgrades:
         damage_c = d10
@@ -370,10 +370,10 @@ def upgrade_weapons_v2(upgrades, ac, roll, mod, pb, extra_dmg=0):
         damage_c = damage_c.reroll_on([1, 2])
 
     if 'Gambling - Balanced' in Upgrades:
-        hit_bonus += dice.binary(0.1)*15
+        hit_bonus += dice.binary(0.1) * 15
 
     if 'Gambling - Wounding' in Upgrades:
-        damage_n += dice.binary(0.1)*15
+        damage_n += dice.binary(0.1) * 15
 
     if 'Hasty' in Upgrades:
         mult += dice.binary(0.05)
@@ -383,8 +383,9 @@ def upgrade_weapons_v2(upgrades, ac, roll, mod, pb, extra_dmg=0):
 
     Attack = dnd.hit(roll, hit_bonus, ac, crit_thresh).switch(miss_dmg,
                                                               damage_c + damage_n,
-                                                              damage_c*2 + damage_n + extra_crit_dmg) * mult
+                                                              damage_c * 2 + damage_n + extra_crit_dmg) * mult
     return Attack.mean(), Upgrades, Cost
+
 
 def upgrade_weapons_v2_overview():
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
@@ -394,11 +395,10 @@ def upgrade_weapons_v2_overview():
     mod = 4
     pb = 3
 
-
     def generate_binary_vecs(len):
         if len == 1:
             return [[0], [1]]
-        sub_vectors = generate_binary_vecs(len-1)
+        sub_vectors = generate_binary_vecs(len - 1)
         vectors = []
         for sub_vector in sub_vectors:
             vectors.append([0] + sub_vector)
@@ -426,6 +426,7 @@ def upgrade_weapons_v2_overview():
     print(shapley_values)
     pass
 
+
 def shapley_value(func, vec_len):
     def generate_binary_vecs(len):
         if len == 1:
@@ -450,7 +451,7 @@ def shapley_value(func, vec_len):
             vec_copy[i] = 0
             value_without = func(vec_copy)
             s += value_with[0] - value_without[0]
-        s /= 2**vec_len
+        s /= 2 ** vec_len
         value.append(s)
     return value
 
@@ -459,7 +460,7 @@ def compare_flash_strike():
     def flash_strike(ac, crit=False):
         d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
         hit_dmg = d8 + 5 + d6 ** 4
-        crit_dmg = d8**2 + d6 ** 8 + 5
+        crit_dmg = d8 ** 2 + d6 ** 8 + 5
         if (crit):
             dmg = dnd.hit(d20.adv(), 8, ac, 18).switch(0, crit_dmg, crit_dmg)
         else:
@@ -469,7 +470,7 @@ def compare_flash_strike():
     def flash_strike_v2(ac, crit=False):
         d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
         hit_dmg = d8 + 5 + d6 ** 2
-        crit_dmg = d8**2 + d6 ** 4 + 5
+        crit_dmg = d8 ** 2 + d6 ** 4 + 5
         if (crit):
             dmg = dnd.hit(d20.adv(), 8, ac, 18).switch(0, crit_dmg, crit_dmg) ** 2
         else:
@@ -480,7 +481,7 @@ def compare_flash_strike():
     def normal_samurai(ac, crit=False):
         d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
         hit_dmg = d8 + 5
-        crit_dmg = d8**2 + 5
+        crit_dmg = d8 ** 2 + 5
         if (crit):
             dmg = dnd.hit(d20.adv(), 8, ac, 20).switch(0, crit_dmg, crit_dmg)
         else:
@@ -490,7 +491,7 @@ def compare_flash_strike():
     def basic(ac, crit=False):
         d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
         hit_dmg = d8 + 5
-        crit_dmg = d8**2 + 5
+        crit_dmg = d8 ** 2 + 5
         if (crit):
             dmg = dnd.hit(d20.adv(), 8, ac, 20).switch(0, crit_dmg, crit_dmg)
         else:
@@ -500,7 +501,7 @@ def compare_flash_strike():
     def champion(ac, crit=False):
         d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
         hit_dmg = d8 + 5
-        crit_dmg = d8**2 + 5
+        crit_dmg = d8 ** 2 + 5
         if (crit):
             dmg = dnd.hit(d20.adv(), 8, ac, 19).switch(0, crit_dmg, crit_dmg)
         else:
@@ -510,7 +511,7 @@ def compare_flash_strike():
     def echo(ac, crit=False):
         d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
         hit_dmg = d8 + 5
-        crit_dmg = d8**2 + 5
+        crit_dmg = d8 ** 2 + 5
         if (crit):
             dmg = dnd.hit(d20.adv(), 8, ac, 20).switch(0, crit_dmg, crit_dmg)
         else:
@@ -519,7 +520,187 @@ def compare_flash_strike():
 
     sld_ac = ['AC', 12, 12, 20]
     sld_hold_person = ['Paralyze', 0, 0, 1]
-    dice.plot_mean([flash_strike, flash_strike_v2, normal_samurai , basic, echo], [sld_ac, sld_hold_person])
+    dice.plot_mean([flash_strike, flash_strike_v2, normal_samurai, basic, echo], [sld_ac, sld_hold_person])
+
+
+def godshot_hp(hitdie_size, con_mod, tough=False, durable=False, periapt=False):
+    lvl1_hp = hitdie_size + con_mod
+    lvl2_hp = hitdie_size / 2 + 1 + con_mod
+    normal_hp = lvl1_hp + 19 * lvl2_hp + (20 if tough else 0)
+
+    hp_per_hit_die = dice.d(hitdie_size) + con_mod
+    if durable:
+        hp_per_hit_die = dice.highest(hp_per_hit_die, 2 * con_mod)
+
+    if periapt:
+        hp_per_hit_die *= 2
+
+    hp_from_hit_die = 20 * hp_per_hit_die.mean()
+
+    return normal_hp + hp_from_hit_die
+
+
+def alt_fighter():
+    d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+
+    STR = +5
+    prof = +6
+    magic = +3
+    exploit_die = d12
+
+    def greatsword_gwf_hwf(adv, ac, exploit_die_dmg):
+        hit_roll = d20.adv() if adv else d20
+        dmg_dice = d6.reroll_on([1, 2]) ** 2
+        hwf_dmg = 2
+        effective_exploit_die_dmg = exploit_die if exploit_die_dmg else dice.zero()
+        hit_dmg = (dmg_dice + effective_exploit_die_dmg) + hwf_dmg + STR + prof + magic
+        crit_dmg = (dmg_dice + effective_exploit_die_dmg) ** 2 + hwf_dmg + STR + prof + magic
+        return dnd.hit(hit_roll, STR + prof + magic, ac).switch(0, hit_dmg, crit_dmg) << "Greatsword (Reroll 1/2, +2 dmg)"
+
+    def greatsword_gwf_hwf_gwm(adv, ac, exploit_die_dmg):
+        hit_roll = d20.adv() if adv else d20
+        dmg_dice = d6.reroll_on([1, 2]) ** 2
+        hwf_dmg = 2
+        gwm_hit = -5
+        gwm_dmg = +10
+        effective_exploit_die_dmg = exploit_die if exploit_die_dmg else dice.zero()
+        hit_dmg = (dmg_dice + effective_exploit_die_dmg) + hwf_dmg + STR + prof + magic + gwm_dmg
+        crit_dmg = (dmg_dice + effective_exploit_die_dmg) ** 2 + hwf_dmg + STR + prof + magic + gwm_dmg
+        return dnd.hit(hit_roll, STR + prof + magic + gwm_hit, ac).switch(0, hit_dmg, crit_dmg) << "Greatsword (Reroll 1/2, +2 dmg) w/ GWM"
+
+    def longsword_onehanded(adv, ac, exploit_die_dmg):
+        hit_roll = d20.adv() if adv else d20
+        dmg_dice = d8
+        effective_exploit_die_dmg = exploit_die if exploit_die_dmg else dice.zero()
+        hit_dmg = (dmg_dice + effective_exploit_die_dmg) + STR + prof + magic + 2
+        crit_dmg = (dmg_dice + effective_exploit_die_dmg) ** 2 + STR + prof + magic + 2
+        return dnd.hit(hit_roll, STR + prof + magic + 1, ac).switch(0, hit_dmg, crit_dmg) << "One Handed Longsword (d8, +2 dmg, +1 hit, +1 ac)"
+
+    def longsword_twohanded(adv, ac, exploit_die_dmg):
+        hit_roll = d20.adv() if adv else d20
+        dmg_dice = d10.reroll_on([1,2])
+        effective_exploit_die_dmg = exploit_die if exploit_die_dmg else dice.zero()
+        hit_dmg = (dmg_dice + effective_exploit_die_dmg) + STR + prof + magic + 2
+        crit_dmg = (dmg_dice + effective_exploit_die_dmg) ** 2 + STR + prof + magic + 2
+        return dnd.hit(hit_roll, STR + prof + magic, ac).switch(0, hit_dmg, crit_dmg) << "Two Handed Longsword (d10 reroll 1/2, +2 dmg)"
+
+    dice.plot_mean([greatsword_gwf_hwf, greatsword_gwf_hwf_gwm, longsword_onehanded, longsword_twohanded],
+                   [['Advantage', 0, 0, 1], ['AC', 10, 15, 25], ['Include Exploit Die', 0, 0, 1]])
+
+def alt_fighter_greatsword():
+    d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+
+    STR = +5
+    prof = +6
+    magic = +3
+
+    def greatsword(ac, adv, gwm):
+        hit_roll = d20.adv() if adv else d20
+        dmg_dice = d6 ** 2
+        if gwm:
+            gwm_hit = -5
+            gwm_dmg = +10
+        else:
+            gwm_hit = 0
+            gwm_dmg = 0
+        hit_dmg = dmg_dice + STR + prof + magic + gwm_dmg
+        crit_dmg = dmg_dice ** 2 + STR + prof + magic + gwm_dmg
+        return dnd.hit(hit_roll, STR + prof + magic + gwm_hit, ac).switch(0, hit_dmg, crit_dmg) << "Greatsword"
+
+    def greatsword_gwf(ac, adv, gwm):
+        hit_roll = d20.adv() if adv else d20
+        dmg_dice = d6.reroll_on([1, 2]) ** 2
+        if gwm:
+            gwm_hit = -5
+            gwm_dmg = +10
+        else:
+            gwm_hit = 0
+            gwm_dmg = 0
+        hit_dmg = dmg_dice + STR + prof + magic + gwm_dmg
+        crit_dmg = dmg_dice ** 2 + STR + prof + magic + gwm_dmg
+        return dnd.hit(hit_roll, STR + prof + magic + gwm_hit, ac).switch(0, hit_dmg, crit_dmg) << "Greatsword + GWF"
+
+    def greatsword_hwf(ac, adv, gwm):
+        hit_roll = d20.adv() if adv else d20
+        dmg_dice = d6 ** 2
+        hwf_dmg = 2
+        if gwm:
+            gwm_hit = -5
+            gwm_dmg = +10
+        else:
+            gwm_hit = 0
+            gwm_dmg = 0
+        hit_dmg = dmg_dice + hwf_dmg + STR + prof + magic + gwm_dmg
+        crit_dmg = dmg_dice ** 2 + hwf_dmg + STR + prof + magic + gwm_dmg
+        return dnd.hit(hit_roll, STR + prof + magic + gwm_hit, ac).switch(0, hit_dmg, crit_dmg) << "Greatsword + HWF"
+
+    def greatsword_gwf_hwf(ac, adv, gwm):
+        hit_roll = d20.adv() if adv else d20
+        dmg_dice = d6.reroll_on([1, 2]) ** 2
+        hwf_dmg = 2
+        if gwm:
+            gwm_hit = -5
+            gwm_dmg = +10
+        else:
+            gwm_hit = 0
+            gwm_dmg = 0
+        hit_dmg = dmg_dice + hwf_dmg + STR + prof + magic + gwm_dmg
+        crit_dmg = dmg_dice ** 2 + hwf_dmg + STR + prof + magic + gwm_dmg
+        return dnd.hit(hit_roll, STR + prof + magic + gwm_hit, ac).switch(0, hit_dmg, crit_dmg) << "Greatsword + GWF + HWF"
+
+    dice.plot_mean([greatsword, greatsword_gwf, greatsword_hwf, greatsword_gwf_hwf],
+                   [['AC', 10, 15, 25], ['Advantage', 0, 0, 1], ['Great Weapon Master', 0, 0, 1]],
+                   y_lim=[0, 50])
+
+def alt_fighter_greatsword_final():
+    d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+
+    STR = +5
+    prof = +6
+    magic = +3
+
+    def greatsword(ac):
+        hit_roll = d20
+        dmg_dice = d8.reroll_on(1) ** 2
+        hit_dmg = dmg_dice + STR + prof + magic
+        crit_dmg = dmg_dice ** 2 + STR + prof + magic
+        return dnd.hit(hit_roll, STR + prof + magic, ac).switch(0, hit_dmg, crit_dmg) << "Greatsword"
+
+    def greatsword_adv(ac):
+        hit_roll = d20.adv()
+        dmg_dice = d8.reroll_on(1) ** 2
+        hit_dmg = dmg_dice + STR + prof + magic
+        crit_dmg = dmg_dice ** 2 + STR + prof + magic
+        return dnd.hit(hit_roll, STR + prof + magic, ac).switch(0, hit_dmg, crit_dmg) << "Greatsword w\ Advantage"
+
+    def greatsword_gwm(ac):
+        hit_roll = d20
+        dmg_dice = d8.reroll_on(1) ** 2
+        hit_dmg = dmg_dice + STR + prof + magic + 10
+        crit_dmg = dmg_dice ** 2 + STR + prof + magic + 10
+        return dnd.hit(hit_roll, STR + prof + magic - 5, ac).switch(0, hit_dmg, crit_dmg) << "Greatsword \w GWM"
+
+    def greatsword_adv_gwm(ac):
+        hit_roll = d20.adv()
+        dmg_dice = d8.reroll_on(1) ** 2
+        hit_dmg = dmg_dice + STR + prof + magic + 10
+        crit_dmg = dmg_dice ** 2 + STR + prof + magic + 10
+        return dnd.hit(hit_roll, STR + prof + magic - 5, ac).switch(0, hit_dmg, crit_dmg) << "Greatsword w\ Advantage & GWM"
+
+    dice.plot_mean([greatsword, greatsword_gwm, greatsword_adv, greatsword_adv_gwm],
+                   [['AC', 10, 15, 25]])
+
+
+def spell_hit_die():
+    spell_levels = [4, 3, 2]
+    check_dice = dice.d(12)
+
+    total_hit_die_used = dice.zero()
+    for level in range(len(spell_levels)):
+        slots = spell_levels[level]
+        total_hit_die_used += (level + 1 >= check_dice) ** slots
+
+    total_hit_die_used.print_normal()
 
 
 if __name__ == '__main__':
@@ -540,8 +721,13 @@ if __name__ == '__main__':
     # acquire_funds(2)
     # rerolled = lambda x : d12.reroll_comp('<=', x) << "Reroll on " + str(x) + " or lower"
     # dice.plot_stats(rerolled, ["Reroll LT", 0, 1, 12], y_lim='max')
-    # TODO: Add checkboxes and non-number sliders
     # upgrade_weapons_v2_overview()
     # compare_flash_strike()
+    # dice.plot_mean(godshot_hp, [["Hit Die Size", 6, 10, 12, 2], ["Constitution Mod", 3, 5, 7], ["Tough", 0, 0, 1],
+    #                             ["Durable", 0, 0, 1], ["Periapt", 0, 0, 1]], y_lim="max")
+    # alt_fighter_greatsword_final()
 
-
+    # dmg = dnd.hit(d20.adv(), 5 + 6 + 3 - 5, 18).switch(0, d8.reroll_on(1) ** 2 + 20, d8.reroll_on(1) ** 4 + 20).print_normal()
+    # spell_hit_die()
+    d20.ranges(-10, -5, -3, 2, 12, upper=False).print_normal()
+    
