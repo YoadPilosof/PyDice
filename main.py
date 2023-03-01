@@ -729,5 +729,4 @@ if __name__ == '__main__':
 
     # dmg = dnd.hit(d20.adv(), 5 + 6 + 3 - 5, 18).switch(0, d8.reroll_on(1) ** 2 + 20, d8.reroll_on(1) ** 4 + 20).print_normal()
     # spell_hit_die()
-    d20.ranges(-10, -5, -3, 2, 12, upper=False).print_normal()
-    
+    (d6**13).print_normal()

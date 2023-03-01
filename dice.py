@@ -328,16 +328,15 @@ class dice:
             return zero()
         # Roll a die once, so copy the self die and return it
         elif power == 1:
-            return copy.deepcopy(self)
+            return self
         # Roll more than one die, call power recursively
         else:
             # return self ** (power/2) ** 2
+            recursive_die = self ** (power // 2)
             if power % 2:
-                half_die = self ** (power // 2)
-                return half_die + half_die + self
+                return recursive_die + recursive_die + self
             else:
-                half_die = self ** (power / 2)
-                return half_die + half_die
+                return recursive_die + recursive_die
 
     def __neg__(self) -> dice:
         """
@@ -398,7 +397,12 @@ class dice:
         if n == 1:
             return self
         else:
-            return self.get_pos(0, n)
+            recursive_die = self.adv(n // 2)
+            if n % 2 == 0:
+                return highest(recursive_die, recursive_die)
+            else:
+                return highest(recursive_die, recursive_die, self)
+
 
     def dis(self, n: int = 2) -> dice:
         """
@@ -411,7 +415,11 @@ class dice:
         if n == 1:
             return self
         else:
-            return self.get_pos(n - 1, n)
+            recursive_die = self.dis(n // 2)
+            if n % 2 == 0:
+                return lowest(recursive_die, recursive_die)
+            else:
+                return lowest(recursive_die, recursive_die, self)
 
     def exp(self, explode_on: float | int | None = None, max_depth: int = 2) -> dice:
         """
