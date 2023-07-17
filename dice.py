@@ -313,15 +313,27 @@ class dice:
         # Return the new die
         return new_dice
 
-    def __pow__(self, power: int, modulo=None) -> dice:
+    def __pow__(self, power: int | dice, modulo=None) -> dice:
         """
         Creates a die describing rolling the same die multiple times and taking the sum
         :param power: How many dice to roll
         :return: A new die, with statistics according to the sum of the die
         """
 
+        if isinstance(power, dice):
+            new_dice = dice()
+
+            for power_roll, power_chance in power.pdf.items():
+                temp_die = self ** power_roll
+                for temp_roll, temp_chance in temp_die.pdf.items():
+                    if temp_roll not in new_dice.pdf.keys():
+                        new_dice.pdf[temp_roll] = 0
+                    new_dice.pdf[temp_roll] += power_chance * temp_chance
+
+            return new_dice
+
         if not isinstance(power, int) or power < 0:
-            raise TypeError("the power operator (rolling multiple dice) is only supported for non-negative integers")
+            raise TypeError("the power operator (rolling multiple dice) is only supported for non-negative integers and dice that roll non-negative integers")
 
         # Roll a die zero times, so the result is always 0
         if power == 0:
@@ -1153,6 +1165,25 @@ class dice:
             case _:
                 raise Exception('Invalid comparison operator')
 
+    def given(self, lambda_cond: Callable[[float | int], bool]) -> dice:
+        """
+        Changes the values of the self die to be given a conditional probability
+        :param lambda_cond: A function that takes roll values and gives a boolean.
+        :return: A new die that has the properties of the original die, given that lambda_cond is true
+        """
+
+        P_B = sum([chance for roll, chance in self.pdf.items() if lambda_cond(roll)])
+        if P_B == 0:
+            raise AttributeError("The self die never gets a value where the lambda condition is true")
+
+        new_dice = dice()
+
+        for roll, chance in self.pdf.items():
+            if lambda_cond(roll):
+                new_dice.pdf[roll] = chance / P_B
+
+        return new_dice
+
 
 class fastdice:
     def __init__(self, mean: float | int = 0, var: float | int = 0):
@@ -1215,11 +1246,11 @@ class fastdice:
         v = self.var()
         s = self.std()
 
-        left_idx = math.floor((m - s*span)/step)
-        right_idx = math.ceil((m + s*span)/step) + 1 # Since range is exclusive for stop value
+        left_idx = math.floor((m - s * span) / step)
+        right_idx = math.ceil((m + s * span) / step) + 1  # Since range is exclusive for stop value
 
         for val in range(left_idx, right_idx):
-            new_dice.pdf[val*step] = step/(s*math.sqrt(2*math.pi)) * math.exp(-(val*step - m)**2 / (2 * v))
+            new_dice.pdf[val * step] = step / (s * math.sqrt(2 * math.pi)) * math.exp(-(val * step - m) ** 2 / (2 * v))
 
         n = 1 / new_dice.norm()
 
