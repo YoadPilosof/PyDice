@@ -133,13 +133,54 @@ def pf2e_treat_wounds():
     dice.plot_mean([Trained, Expert, Master, Legendary], [["Level", 1, 1, 20], ["Assurance", 0, 0, 1], ["Hour Long", 0, 0, 1]], y_lim='max')
 
 
+def pf2e_scout(bonus):
+    d20 = dice.d(20)
+    d6 = dice.d(6)
+
+    check_result = pf.check(d20, bonus, 15)
+    # return check_result.switch(0, 1, 0, 0)
+    return check_result.switch(d6 <= 5, d6 <= 2, d6 <= 1, 0) << "Chance to Veer"
+
+def pf2e_hunted_shot_vs_hunters_aim():
+    d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
+
+    damage_die = d6
+    precision_die = d8
+    support_benefit = d8
+    # support_benefit = dice.zero()
+
+    def hunted_shot(hit_bonus, target_ac):
+        hit_chance1 = pf.check(d20, hit_bonus, target_ac)
+        hit_chance2 = pf.check(d20, hit_bonus - 5, target_ac)
+
+        def calc_damage_for_two_hits(hit1, hit2):
+            dmg_so_far = dice.zero()
+            if hit1 == 2:
+                dmg_so_far += damage_die + precision_die + support_benefit
+            if hit1 == 3:
+                dmg_so_far += damage_die*2 + precision_die*2 + support_benefit
+
+            if hit2 == 2:
+                dmg_so_far += damage_die + (precision_die * (hit1 <= 1)) + support_benefit
+            if hit2 == 3:
+                dmg_so_far += damage_die*2 + (precision_die*2 * (hit1 <= 1)) + support_benefit
+
+            return dmg_so_far
+
+        return dice.func(calc_damage_for_two_hits, hit_chance1, hit_chance2) << "Hunted Shot"
+
+    def hunters_aim(hit_bonus, target_ac):
+        return pf.check(d20, hit_bonus + 20, target_ac).switch(0, 0, damage_die + precision_die + support_benefit, damage_die*2 + precision_die*2 + support_benefit) << "Hunters Aim"
+
+    dice.plot_mean([hunted_shot, hunters_aim], dynamic_vars=[["Hit Bonus", 0, 0, 20], ["Target AC", 10, 10, 30]])
+
 if __name__ == '__main__':
     d4, d6, d8, d10, d12, d20, d100 = dice.standard_dice()
     # dice.print_summary([d4 << "1d4", d6 << "1d6", d8 << "1d8", d10 << "1d10", d12 << "1d12", d20 << "1d20", d100 << "1d100"], 0)
-    d10s = lambda N: d10 ** N << "Nd10"
-    d8s = lambda N: d8 ** N << "Nd8"
-    d6s = lambda N: d6 ** N << "Nd6"
-    sld = ['Number of Dice', 1, 1, 6]
+    # d10s = lambda N: d10 ** N << "Nd10"
+    # d8s = lambda N: d8 ** N << "Nd8"
+    # d6s = lambda N: d6 ** N << "Nd6"
+    # sld = ['Number of Dice', 1, 1, 6]
     # dice.plot_stats([d6 ** 4 << "4d6", d8 ** 4 << "4d8", d10 ** 4 << "4d10"])
     # dice.plot_stats([d6s, d8s, d10s], sld)
 
@@ -165,4 +206,13 @@ if __name__ == '__main__':
 
     # (d6**d4).print_normal()
 
-    pf2e_treat_wounds()
+    # pf2e_treat_wounds()
+
+    # dice.plot_mean(pf2e_scout, ["Bonus", 0, 0, 20])
+    pf2e_hunted_shot_vs_hunters_aim()
+
+    # dice.plot_mean([lambda bonus: (pf.check(d20, bonus, 15) == 0) << "Crit Fail",
+    #                 lambda bonus: (pf.check(d20, bonus, 15) == 1) << "Fail",
+    #                 lambda bonus: (pf.check(d20, bonus, 15) == 2) << "Success",
+    #                 lambda bonus: (pf.check(d20, bonus, 15) == 3) << "Crit Success"],
+    #                ["Check Bonus", 0, 0, 25])
