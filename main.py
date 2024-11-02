@@ -209,7 +209,7 @@ if __name__ == '__main__':
     # pf2e_treat_wounds()
 
     # dice.plot_mean(pf2e_scout, ["Bonus", 0, 0, 20])
-    pf2e_hunted_shot_vs_hunters_aim()
+    # pf2e_hunted_shot_vs_hunters_aim()
 
     # dice.plot_mean([lambda bonus: (pf.check(d20, bonus, 15) == 0) << "Crit Fail",
     #                 lambda bonus: (pf.check(d20, bonus, 15) == 1) << "Fail",

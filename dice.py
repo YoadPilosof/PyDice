@@ -38,6 +38,9 @@ class dice:
         self.name = other
         return self
 
+    def __str__(self):
+        return f"{self.name}: {self.mean():.2f} ± {self.std():.2f}"
+
     def print_normal(self, precision: int = 2) -> None:
         """
         Prints general info about the dice (mean and std), and prints a graph-like plot of the pdf of the dice
@@ -1186,10 +1189,10 @@ class dice:
 
 
 class fastdice:
-    def __init__(self, mean: float | int = 0, var: float | int = 0):
+    def __init__(self, mean: float | int = 0, var: float | int = 0, name: str = None):
         self._mean = mean
         self._var = var
-        self.name = "Unnamed Die"
+        self.name = "Unnamed Die" if name is None else name
 
     def __rshift__(self, other: str) -> fastdice:
         """
@@ -1205,13 +1208,11 @@ class fastdice:
         self.name = other
         return self
 
-    def print(self, precision: int = 2) -> None:
-        """
-        Prints information about the dice
-        """
+    def __str__(self):
+        return f"{self.name}: {self._mean:.2f} ± {math.sqrt(self._var):.2f}"
 
-        txt_format = "{0}: {1:." + str(precision) + "f} ± {2:." + str(precision) + "f}"
-        print(txt_format.format(self.name, self._mean, math.sqrt(self._var)))
+    def __repr__(self):
+        return f"fastdice(mean={self._mean}, var={self._var}, name=\"{self.name}\")"
 
     def mean(self) -> float:
         """
@@ -1305,15 +1306,14 @@ class fastdice:
         if not isinstance(power, (float, int)):
             raise TypeError("the power operator (rolling multiple dice) is only supported for non-negative integers")
 
-        self._mean *= power
-        self._var *= power
-        return self
+        new_dice = fastdice(self._mean * power, self._var * power)
+        return new_dice
 
     def __neg__(self) -> fastdice:
         """
         :return: Flips the sign of the values of the dice
         """
-        self._mean = -self._mean
+        new_dice = fastdice(-self._mean, self._var)
         return self
 
     # ~~~~~~~~~ Overloaded Right side Operations ~~~~~~~~~
